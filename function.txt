@@ -1,0 +1,52 @@
+1. Quản lý thông tin thuê quần áo
+Thêm mới bộ quần áo cho thuê:
+Nhập tên người cho thuê
+Nhập tên bộ quần áo
+Nhập giá tiền thuê
+Chọn ngày cho thuê (bắt đầu và kết thúc)
+Chọn tình trạng bộ quần áo (có sẵn/đang thuê)
+Cập nhật thông tin bộ quần áo đã cho thuê:
+Chỉnh sửa thông tin tên bộ quần áo
+Cập nhật giá thuê, ngày cho thuê
+Cập nhật tình trạng bộ quần áo
+Xóa thông tin bộ quần áo đã cho thuê.
+2. Quản lý thống kê và doanh thu
+Thống kê doanh thu:
+Tính toán tổng doanh thu theo tuần
+Tính toán tổng doanh thu theo tháng
+Hiển thị doanh thu theo từng bộ quần áo
+Thống kê bộ quần áo cho thuê nhiều nhất:
+Liệt kê bộ quần áo cho thuê nhiều nhất trong tuần và tháng
+Hiển thị số lần bộ quần áo được thuê và tổng doanh thu từ bộ quần áo đó
+3. Biểu đồ thống kê
+Biểu đồ doanh thu:
+Biểu đồ doanh thu theo tuần
+Biểu đồ doanh thu theo tháng
+Biểu đồ so sánh bộ quần áo:
+Biểu đồ thể hiện số lượng bộ quần áo cho thuê theo tuần/tháng
+4. Các chức năng tìm kiếm và lọc
+Tìm kiếm bộ quần áo theo tên, giá tiền
+Lọc bộ quần áo theo giá tiền:
+Lọc theo mức giá (giá thấp, giá cao)
+Lọc bộ quần áo theo ngày bắt đầu và kết thúc cho thuê
+
+5. Giao diện người dùng (UI/UX)
+Trang chủ:
+Hiển thị tổng quan doanh thu trong tuần và tháng
+Hiển thị danh sách bộ quần áo cho thuê nhiều nhất
+Hiển thị các biểu đồ thống kê doanh thu và số lượng thuê
+Trang thống kê doanh thu:
+Hiển thị chi tiết doanh thu theo tuần/tháng
+Biểu đồ thống kê doanh thu và số lượng bộ quần áo cho thuê
+Trang quản lý bộ quần áo:
+Hiển thị danh sách bộ quần áo đã cho thuê
+Cho phép chỉnh sửa và xóa thông tin bộ quần áo
+
+Quản lý khách hàng:
+Lưu trữ thông tin khách hàng: tên, số điện thoại, CCCD
+Lịch sử thuê của khách hàng
+8. Công nghệ và công cụ hỗ trợ
+Cơ sở dữ liệu: MySQL, PostgreSQL, hoặc MongoDB
+Backend: Node.js
+Frontend: React.js
+Biểu đồ và thống kê: Sử dụng thư viện Chart.js hoặc D3.js
