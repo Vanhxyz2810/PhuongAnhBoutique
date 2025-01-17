@@ -1,13 +1,21 @@
-import mongoose from 'mongoose';
+import { DataSource } from "typeorm";
+import { Rental } from "../models/Rental";
+import { Clothes } from "../models/Clothes";
+
+export const AppDataSource = new DataSource({
+  type: "sqlite",
+  database: "clothes_rental.sqlite",
+  entities: [Clothes, Rental],
+  synchronize: true,
+  logging: false
+});
 
 export const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/clothes_rental', {
-      // Thêm các options nếu cần
-    });
-    console.log('MongoDB đã kết nối thành công');
+    await AppDataSource.initialize();
+    console.log("Database đã được kết nối");
   } catch (error) {
-    console.error('Lỗi kết nối MongoDB:', error);
+    console.error("Lỗi kết nối database:", error);
     process.exit(1);
   }
 }; 

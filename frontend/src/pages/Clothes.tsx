@@ -17,18 +17,30 @@ import {
   IconButton,
   Chip,
   Box,
-  Typography
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { Add, Edit, Delete, CloudUpload } from '@mui/icons-material';
 
 interface Clothes {
-  _id: string;
+  id: string;
   name: string;
   ownerName: string;
   rentalPrice: number;
   status: 'available' | 'rented';
+  image: string;
   description?: string;
-  image?: string;
+}
+
+interface FormData {
+  name: string;
+  ownerName: string;
+  rentalPrice: string;
+  description: string;
+  status: 'available' | 'rented';
 }
 
 const API_URL = 'http://localhost:5001/api/clothes';
@@ -36,11 +48,12 @@ const API_URL = 'http://localhost:5001/api/clothes';
 const Clothes = () => {
   const [clothes, setClothes] = useState<Clothes[]>([]);
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     ownerName: '',
     rentalPrice: '',
-    description: ''
+    description: '',
+    status: 'available'
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -74,9 +87,15 @@ const Clothes = () => {
 
   const handleSubmit = async () => {
     try {
-      // Validate form
-      if (!formData.name || !formData.ownerName || !formData.rentalPrice || !imagePreview) {
-        alert('Vui lòng điền đầy đủ thông tin và chọn ảnh');
+      // Validate form - Chỉ kiểm tra imagePreview khi thêm mới
+      if (!formData.name || !formData.ownerName || !formData.rentalPrice) {
+        alert('Vui lòng điền đầy đủ thông tin');
+        return;
+      }
+      
+      // Kiểm tra ảnh chỉ khi thêm mới
+      if (!editingId && !imagePreview) {
+        alert('Vui lòng chọn ảnh');
         return;
       }
 
@@ -85,6 +104,7 @@ const Clothes = () => {
       formDataToSend.append('ownerName', formData.ownerName.trim());
       formDataToSend.append('rentalPrice', formData.rentalPrice);
       formDataToSend.append('description', formData.description || '');
+      formDataToSend.append('status', formData.status);
       
       if (fileInputRef.current?.files?.[0]) {
         formDataToSend.append('image', fileInputRef.current.files[0]);
@@ -101,7 +121,7 @@ const Clothes = () => {
       await fetchClothes();
       setOpen(false);
       setEditingId(null);
-      setFormData({ name: '', ownerName: '', rentalPrice: '', description: '' });
+      setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available' });
       setImagePreview(null);
 
     } catch (error: any) {
@@ -121,12 +141,13 @@ const Clothes = () => {
   };
 
   const handleEdit = (item: Clothes) => {
-    setEditingId(item._id);
+    setEditingId(item.id);
     setFormData({
       name: item.name,
       ownerName: item.ownerName,
       rentalPrice: item.rentalPrice.toString(),
-      description: item.description || ''
+      description: item.description || '',
+      status: item.status
     });
     setOpen(true);
   };
@@ -185,7 +206,7 @@ const Clothes = () => {
           </TableHead>
           <TableBody>
             {clothes.map((item) => (
-              <TableRow key={item._id}>
+              <TableRow key={item.id}>
                 <TableCell sx={{ fontWeight: 500 }} align="center">{item.name}</TableCell>
                 <TableCell align="center">{item.ownerName}</TableCell>
                 <TableCell align="center">{item.rentalPrice.toLocaleString()}đ</TableCell>
@@ -220,7 +241,7 @@ const Clothes = () => {
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton 
-                    onClick={() => handleDelete(item._id)}
+                    onClick={() => handleDelete(item.id)}
                     sx={{ 
                       color: '#FF69B4',
                       '&:hover': { 
@@ -246,88 +267,111 @@ const Clothes = () => {
       </TableContainer>
 
       {/* Form Dialog */}
-      <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>{editingId ? 'Chỉnh Sửa Quần Áo' : 'Thêm Bộ Quần Áo Mới'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Image Upload */}
-            <Box
-              sx={{
-                border: '2px dashed #FF8DC7',
-                borderRadius: 2,
-                p: 2,
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: '#FFF0F5' }
-              }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {imagePreview ? (
-                <img 
-                  src={imagePreview} 
-                  alt="Preview" 
-                  style={{ maxHeight: 200, maxWidth: '100%', objectFit: 'contain' }} 
+      <Box role="presentation">
+        <Dialog 
+          open={open}
+          onClose={() => setOpen(false)}
+          aria-labelledby="clothes-dialog-title"
+        >
+          <DialogTitle id="clothes-dialog-title">
+            {editingId ? 'Cập Nhật Quần Áo' : 'Thêm Quần Áo Mới'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Image Upload */}
+              <Box
+                sx={{
+                  border: '2px dashed #FF8DC7',
+                  borderRadius: 2,
+                  p: 2,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: '#FFF0F5' }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {imagePreview ? (
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    style={{ maxHeight: 200, maxWidth: '100%', objectFit: 'contain' }} 
+                  />
+                ) : (
+                  <>
+                    <CloudUpload sx={{ fontSize: 40, color: '#FF8DC7', mb: 1 }} />
+                    <Typography>Click để tải ảnh lên</Typography>
+                  </>
+                )}
+                <input
+                  type="file"
+                  hidden
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageChange}
                 />
-              ) : (
-                <>
-                  <CloudUpload sx={{ fontSize: 40, color: '#FF8DC7', mb: 1 }} />
-                  <Typography>Click để tải ảnh lên</Typography>
-                </>
-              )}
-              <input
-                type="file"
-                hidden
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-            </Box>
+              </Box>
 
-            {/* Existing form fields */}
-            <TextField
-              label="Tên Bộ Quần Áo"
-              fullWidth
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-            <TextField
-              label="Người Cho Thuê"
-              fullWidth
-              value={formData.ownerName}
-              onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-            />
-            <TextField
-              label="Giá Thuê"
-              type="number"
-              fullWidth
-              value={formData.rentalPrice}
-              onChange={(e) => setFormData({ ...formData, rentalPrice: e.target.value })}
-            />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpen(false);
-            setEditingId(null);
-            setFormData({ name: '', ownerName: '', rentalPrice: '', description: '' }); // Reset form khi đóng
-          }}>Hủy</Button>
-          <Button 
-            variant="contained" 
-            onClick={handleSubmit}
-            disabled={!formData.name || !formData.ownerName || !formData.rentalPrice || !imagePreview}
-          >
-            {editingId ? 'Cập Nhật' : 'Lưu'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+              {/* Existing form fields */}
+              <TextField
+                label="Tên Bộ Quần Áo"
+                fullWidth
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+              <TextField
+                label="Người Cho Thuê"
+                fullWidth
+                value={formData.ownerName}
+                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+              />
+              <TextField
+                label="Giá Thuê"
+                type="number"
+                fullWidth
+                value={formData.rentalPrice}
+                onChange={(e) => setFormData({ ...formData, rentalPrice: e.target.value })}
+              />
+              <TextField
+                label="Mô tả"
+                fullWidth
+                multiline
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Tình trạng</InputLabel>
+                <Select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'available' | 'rented' })}
+                >
+                  <MenuItem value="available">Có sẵn</MenuItem>
+                  <MenuItem value="rented">Đang thuê</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              setOpen(false);
+              setEditingId(null);
+              setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available' });
+            }}>Hủy</Button>
+            <Button 
+              variant="contained" 
+              onClick={handleSubmit}
+              disabled={
+                !formData.name || 
+                !formData.ownerName || 
+                !formData.rentalPrice || 
+                (!editingId && !imagePreview)
+              }
+            >
+              {editingId ? 'Cập Nhật' : 'Lưu'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </div>
   );
 };

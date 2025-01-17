@@ -40,3 +40,22 @@
 .read-the-docs {
   color: #888;
 }
+
+.identity-card-modal {
+  .MuiDialog-paper {
+    border-radius: 12px;
+  }
+  
+  .MuiDialogTitle-root {
+    background-color: #f5f5f5;
+  }
+  
+  .MuiDialogContent-root {
+    padding: 24px;
+  }
+  
+  img {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+}
