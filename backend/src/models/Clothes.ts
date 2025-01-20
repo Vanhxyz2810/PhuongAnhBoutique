@@ -1,5 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
+export type ClothesStatus = 'available' | 'pending' | 'rented' | 'maintenance';
+
 @Entity()
 export class Clothes {
   @PrimaryGeneratedColumn('uuid')
@@ -14,8 +16,11 @@ export class Clothes {
   @Column()
   rentalPrice!: number;
 
-  @Column()
-  status!: 'available' | 'rented';
+  @Column({
+    type: 'varchar',
+    default: 'available'
+  })
+  status!: ClothesStatus;
 
   @Column()
   image!: string;

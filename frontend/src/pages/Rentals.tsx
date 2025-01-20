@@ -2,250 +2,335 @@ import { useState, useEffect } from 'react';
 import {
   Container,
   Paper,
+  Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  Chip,
+  Select,
+  MenuItem,
+  FormControl,
+  Box,
+  Grid,
   Dialog,
   DialogContent,
-  DialogTitle,
   IconButton,
-  Box
+  Tooltip
 } from '@mui/material';
-import axios from 'axios';
-import { Visibility, Close } from '@mui/icons-material';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import axiosInstance from '../utils/axios';
+import OrderStatus from '../components/OrderStatus';
+import MoneyIcon from '@mui/icons-material/MonetizationOn';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 interface Rental {
   id: number;
+  orderCode: string;
   customerName: string;
-  clothesIds: string[];
-  quantities: number[];
+  phone: string;
+  totalAmount: number;
   rentDate: string;
   returnDate: string;
-  totalAmount: number;
-  isPaid: boolean;
-  createdAt: string;
-  clothes?: { name: string }[];
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
   identityCard: string;
+  clothes: {
+    id: string;
+    name: string;
+    images: string[];
+  };
 }
 
-interface ClothesData {
-  id: string;
-  name: string;
-}
+const statusOptions = [
+  { value: 'pending', label: 'Đang duyệt', color: 'warning' },
+  { value: 'approved', label: 'Xác nhận', color: 'info' },
+  { value: 'completed', label: 'Hoàn thành', color: 'success' },
+  { value: 'rejected', label: 'Từ chối', color: 'error' }
+];
 
 const Rentals = () => {
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const [clothesMap, setClothesMap] = useState<{[key: string]: string}>({});
-  const [openIdentityModal, setOpenIdentityModal] = useState(false);
-  const [selectedIdentityCard, setSelectedIdentityCard] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch rentals
-        const rentalsResponse = await axios.get('http://localhost:5001/api/rentals');
-        
-        // Fetch all clothes để lấy tên
-        const clothesResponse = await axios.get('http://localhost:5001/api/clothes');
-        const clothesData = clothesResponse.data.reduce((acc: {[key: string]: string}, item: ClothesData) => {
-          acc[item.id] = item.name;
-          return acc;
-        }, {});
-        
-        setClothesMap(clothesData);
-        setRentals(rentalsResponse.data);
-      } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
-
-  const getClothesNames = (clothesIds: string[]) => {
-    return clothesIds.map(id => clothesMap[id]).join(', ');
-  };
-
-  const handleViewIdentityCard = (identityCardPath: string) => {
-    setSelectedIdentityCard(identityCardPath);
-    setOpenIdentityModal(true);
-  };
-
-  const handlePaymentStatusChange = async (rentalId: number, currentStatus: boolean) => {
+  const fetchRentals = async () => {
     try {
-      await axios.patch(`http://localhost:5001/api/rentals/${rentalId}/payment-status`, {
-        isPaid: !currentStatus
-      });
-      
-      // Cập nhật state local
-      setRentals(rentals.map(rental => 
-        rental.id === rentalId 
-          ? { ...rental, isPaid: !rental.isPaid }
-          : rental
-      ));
+      setLoading(true);
+      const response = await axiosInstance.get('/rentals');
+      setRentals(response.data);
     } catch (error) {
-      console.error('Lỗi khi cập nhật trạng thái:', error);
+      console.error('Error fetching rentals:', error);
+      setError('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const calculateTotalRevenue = () => {
-    return rentals
-      .filter(rental => rental.isPaid)
-      .reduce((total, rental) => total + rental.totalAmount, 0);
+  useEffect(() => {
+    fetchRentals();
+  }, []);
+
+  const handleStatusChange = async (rentalId: number, newStatus: string) => {
+    try {
+      await axiosInstance.put(`/rentals/${rentalId}/status`, {
+        status: newStatus
+      });
+      
+      // Refresh danh sách sau khi cập nhật
+      fetchRentals();
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
+  // Thêm hàm tính toán thống kê
+  const calculateStats = () => {
+    const completedRentals = rentals.filter(r => r.status === 'completed');
+    const totalRevenue = completedRentals.reduce((sum, rental) => sum + rental.totalAmount, 0);
+    const totalRentals = rentals.length;
+    const completedCount = completedRentals.length;
+
+    return {
+      totalRevenue,
+      totalRentals,
+      completedCount
+    };
+  };
+
+  const stats = calculateStats();
+
+  // Hàm mở/đóng modal xem ảnh
+  const handleOpenImage = (imageUrl: string) => setSelectedImage(imageUrl);
+  const handleCloseImage = () => setSelectedImage(null);
+
+  if (loading) {
+    return (
+      <Container sx={{ py: 4, textAlign: 'center' }}>
+        <Typography>Đang tải...</Typography>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container sx={{ py: 4, textAlign: 'center' }}>
+        <Typography color="error">{error}</Typography>
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h4" sx={{ mb: 4 }}>Danh Sách Đơn Thuê</Typography>
-      
-      <Paper 
-        elevation={0}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
         sx={{ 
-          p: 3, 
-          mb: 3, 
-          background: 'linear-gradient(135deg, #FFF0F5 0%, #FFE4E1 100%)',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          border: '1px solid',
-          borderColor: 'primary.light'
+          mb: 4, 
+          color: 'primary.main',
+          fontWeight: 'medium'
         }}
       >
-        <Box>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              color: 'text.secondary',
-              mb: 1,
-              fontWeight: 500 
-            }}
-          >
-            Tổng Doanh Thu (Đã Thanh Toán)
-          </Typography>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              color: '#FF1493',
-              fontWeight: 'bold' 
-            }}
-          >
-            {calculateTotalRevenue().toLocaleString()}đ
-          </Typography>
-        </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Typography 
-            sx={{ 
-              color: 'text.secondary',
-              mb: 1,
-              fontWeight: 500
-            }}
-          >
-            Số Đơn Đã Thanh Toán
-          </Typography>
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              color: '#FF1493',
-              fontWeight: 'bold'
-            }}
-          >
-            {rentals.filter(rental => rental.isPaid).length} / {rentals.length}
-          </Typography>
-        </Box>
+        Quản Lý Đơn Thuê
+      </Typography>
+
+      {/* Thống kê */}
+      <Paper 
+        elevation={3}
+        sx={{ 
+          p: { xs: 2, sm: 3 }, // Responsive padding
+          mb: 4,
+          background: 'linear-gradient(135deg, #FFF0F3 0%, #FFE4E8 100%)',
+          borderRadius: 3,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '30%',
+            height: '100%',
+            background: 'linear-gradient(to left, rgba(255,255,255,0.3), transparent)',
+            transform: 'skewX(-15deg)',
+          },
+          '& .MuiTypography-root': {
+            color: '#FF4D6D'
+          },
+          '& .MuiSvgIcon-root': {
+            color: '#FF4D6D'
+          }
+        }}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2,
+                fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Tổng Doanh Thu (Đã Thanh Toán)
+              </Typography>
+
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: { xs: 2, sm: 3 },
+                background: 'rgba(255,255,255,0.5)',
+                p: { xs: 2, sm: 3 },
+                borderRadius: 2
+              }}>
+                <Box sx={{ 
+                  p: { xs: 1.5, sm: 2 }, 
+                  borderRadius: '50%', 
+                  background: '#FF4D6D20',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <MoneyIcon sx={{ fontSize: { xs: 35, sm: 45 } }} />
+                </Box>
+
+                <Box>
+                  <Typography sx={{ 
+                    fontWeight: 700,
+                    mb: 0.5,
+                    fontSize: { xs: '1.8rem', sm: '2.5rem' }
+                  }}>
+                    {new Intl.NumberFormat('vi-VN').format(stats.totalRevenue)}đ
+                  </Typography>
+
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    background: '#FF4D6D10',
+                    py: 0.5,
+                    px: 1.5,
+                    borderRadius: 1.5
+                  }}>
+                    <AssignmentTurnedInIcon sx={{ fontSize: '1rem' }} />
+                    <Typography sx={{ 
+                      fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                      fontWeight: 500
+                    }}>
+                      Hoàn thành: <strong>{stats.completedCount}</strong> / {stats.totalRentals}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+        </Grid>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Mã Đơn</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Khách Hàng</TableCell>
-              
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Sản Phẩm</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Ngày Thuê</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Ngày Trả</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Tổng Tiền</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Trạng Thái</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>CCCD</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Ngày Tạo</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rentals.map((rental) => (
-              <TableRow key={rental.id}>
-                <TableCell align="center">ĐT{rental.id.toString().padStart(4, '0')}</TableCell>
-                <TableCell align="center" >{rental.customerName}</TableCell>
-                
-                <TableCell align="center">{getClothesNames(rental.clothesIds)}</TableCell>
-                <TableCell align="center">{formatDate(rental.rentDate)}</TableCell>
-                <TableCell align="center">{formatDate(rental.returnDate)}</TableCell>
-                <TableCell align="right">
-                  {rental.totalAmount.toLocaleString()}đ
-                </TableCell>
-                <TableCell align="center">
-                  <Chip 
-                    label={rental.isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
-                    color={rental.isPaid ? "success" : "error"}
-                    size="small"
-                    onClick={() => handlePaymentStatusChange(rental.id, rental.isPaid)}
-                    sx={{ cursor: 'pointer' }}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton 
-                    onClick={() => handleViewIdentityCard(rental.identityCard)}
-                    color="primary"
-                  >
-                    <Visibility />
-                  </IconButton>
-                </TableCell>
-                <TableCell align="center">{formatDate(rental.createdAt)}</TableCell>
+      {rentals.length === 0 ? (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Typography>Chưa có đơn hàng nào</Typography>
+        </Paper>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Mã đơn</TableCell>
+                <TableCell>Khách hàng</TableCell>
+                <TableCell>Số điện thoại</TableCell>
+                <TableCell>Sản phẩm</TableCell>
+                <TableCell>Ngày thuê</TableCell>
+                <TableCell>Ngày trả</TableCell>
+                <TableCell>Tổng tiền</TableCell>
+                <TableCell>CCCD</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell>Thao tác</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {rentals.map((rental) => (
+                <TableRow key={rental.id}>
+                  <TableCell>{rental.orderCode}</TableCell>
+                  <TableCell>{rental.customerName}</TableCell>
+                  <TableCell>{rental.phone}</TableCell>
+                  <TableCell>{rental.clothes.name}</TableCell>
+                  <TableCell>
+                    {format(new Date(rental.rentDate), 'dd/MM/yyyy', { locale: vi })}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(rental.returnDate), 'dd/MM/yyyy', { locale: vi })}
+                  </TableCell>
+                  <TableCell>
+                    {new Intl.NumberFormat('vi-VN').format(rental.totalAmount)}đ
+                  </TableCell>
+                  <TableCell>
+                    {rental.identityCard && (
+                      <Tooltip title="Xem CCCD">
+                        <IconButton 
+                          size="small"
+                          onClick={() => handleOpenImage(`http://localhost:5001${rental.identityCard}`)}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <OrderStatus status={rental.status} />
+                  </TableCell>
+                  <TableCell>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={rental.status}
+                        onChange={(e) => handleStatusChange(rental.id, e.target.value)}
+                        sx={{
+                          '& .MuiSelect-select': {
+                            color: statusOptions.find(opt => opt.value === rental.status)?.color
+                          }
+                        }}
+                      >
+                        {statusOptions.map(option => (
+                          <MenuItem 
+                            key={option.value} 
+                            value={option.value}
+                            sx={{ color: `${option.color}.main` }}
+                          >
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog 
-        open={openIdentityModal} 
-        onClose={() => setOpenIdentityModal(false)}
+      {/* Modal xem ảnh */}
+      <Dialog
+        open={!!selectedImage}
+        onClose={handleCloseImage}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ m: 0, p: 2 }}>
-          Ảnh CCCD
-          <IconButton
-            onClick={() => setOpenIdentityModal(false)}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8
-            }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Box
-            component="img"
-            src={`http://localhost:5001${selectedIdentityCard}`}
-            alt="CCCD"
-            sx={{
-              width: '100%',
-              height: 'auto',
-              objectFit: 'contain'
-            }}
-          />
+        <DialogContent sx={{ p: 1 }}>
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="CCCD"
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </Container>

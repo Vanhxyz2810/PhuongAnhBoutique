@@ -11,15 +11,16 @@ import {
   Container,
   Button
 } from '@mui/material';
-import axios from 'axios';
+// import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../utils/axios';
 
 // Định nghĩa lại bảng màu với các tone hồng khác nhau
 const theme = {
   colors: {
     primary: '#FF90BC',      // Hồng nhạt (chủ đạo)
     secondary: '#FFC0D9',    // Hồng nhạt hơn
-    success: '#FF4D94',      // Hồng đậm cho "Có sẵn"
+    success: '#4CAF50',      // Xanh lá cho "Có sẵn"
     warning: '#FFB6C1',      // Hồng nhạt cho "Đang thuê"
     background: '#FFF5F7',   // Hồng rất nhạt (background)
     text: '#4A4A4A',         // Xám đậm (text)
@@ -60,7 +61,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchClothes = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/clothes');
+        const response = await axiosInstance.get('/clothes');
         setClothes(response.data);
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);
@@ -106,9 +107,9 @@ const Dashboard = () => {
           Bộ Sưu Tập Quần Áo
         </Typography>
         
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {clothes.map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item.id} 
+            <Grid item xs={6} sm={6} md={4} key={item.id} 
               onClick={() => handleProductClick(item.id)}
               sx={{ cursor: 'pointer' }}
             >
@@ -127,10 +128,13 @@ const Dashboard = () => {
                   }
                 }}
               >
-                <Box sx={{ position: 'relative', paddingTop: '120%' }}>
+                <Box sx={{ 
+                  position: 'relative', 
+                  paddingTop: { xs: '100%', sm: '120%' }
+                }}>
                   <CardMedia
                     component="img"
-                    image={`http://localhost:5001${item.image}`}
+                    image={`http://localhost:5001/uploads/clothes/${item.image.split('/').pop()}`}
                     alt={item.name}
                     sx={{ 
                       position: 'absolute',
@@ -146,7 +150,7 @@ const Dashboard = () => {
                 <CardContent 
                   sx={{ 
                     flexGrow: 1, 
-                    p: 2,
+                    p: { xs: 1, sm: 2 },
                     bgcolor: 'white',
                     display: 'flex',
                     flexDirection: 'column',
@@ -157,9 +161,9 @@ const Dashboard = () => {
                     variant="h6" 
                     sx={{ 
                       fontWeight: 600,
-                      fontSize: '1rem',
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
                       color: theme.colors.text,
-                      height: '48px',
+                      height: { xs: '40px', sm: '48px' },
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       display: '-webkit-box',
@@ -174,13 +178,13 @@ const Dashboard = () => {
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center',
-                    mb: 1
+                    mb: { xs: 0.5, sm: 1 }
                   }}>
                     <Typography 
                       variant="body1" 
                       sx={{ 
                         fontWeight: 'bold',
-                        fontSize: '1.1rem',
+                        fontSize: { xs: '0.9rem', sm: '1.1rem' },
                         color: theme.colors.primary
                       }}
                     >
@@ -195,7 +199,8 @@ const Dashboard = () => {
                         color: 'white',
                         fontWeight: 500,
                         '& .MuiChip-label': {
-                          px: 1
+                          px: { xs: 0.5, sm: 1 },
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' }
                         }
                       }}
                       size="small"
@@ -213,6 +218,8 @@ const Dashboard = () => {
                         : theme.colors.buttonRented,
                       color: 'white',
                       fontWeight: 600,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      py: { xs: 0.5, sm: 1 },
                       '&:hover': {
                         bgcolor: item.status === 'available' 
                           ? theme.colors.buttonHoverAvailable 
@@ -221,11 +228,10 @@ const Dashboard = () => {
                       '&.Mui-disabled': {
                         bgcolor: theme.colors.buttonRented,
                         color: 'white',
-                        opacity: 1 // Giữ độ đậm của màu khi disabled
+                        opacity: 1
                       },
                       textTransform: 'none',
-                      borderRadius: 2,
-                      py: 1
+                      borderRadius: 2
                     }}
                   >
                     {item.status === 'available' ? 'Thuê Ngay' : 'Đã Cho Thuê'}

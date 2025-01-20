@@ -59,3 +59,52 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 }
+
+.custom-datepicker {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.react-datepicker__header {
+  background-color: #FF90BC;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding-top: 12px;
+}
+
+.react-datepicker__current-month {
+  color: white;
+  font-weight: 500;
+}
+
+.react-datepicker__day-name {
+  color: white;
+}
+
+.react-datepicker__day--selected {
+  background-color: #FF90BC;
+  border-radius: 50%;
+}
+
+.react-datepicker__day--selected:hover {
+  background-color: #FF1493;
+}
+
+.react-datepicker__day:hover {
+  border-radius: 50%;
+}
+
+.react-datepicker__navigation {
+  top: 12px;
+}
+
+.react-datepicker__day--keyboard-selected {
+  background-color: rgba(255, 144, 188, 0.2);
+  border-radius: 50%;
+}

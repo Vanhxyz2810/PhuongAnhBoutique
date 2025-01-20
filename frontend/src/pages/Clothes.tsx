@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   Button,
   Table,
@@ -87,15 +87,21 @@ const Clothes = () => {
 
   const handleSubmit = async () => {
     try {
-      // Validate form - Chỉ kiểm tra imagePreview khi thêm mới
+      // Validate form
       if (!formData.name || !formData.ownerName || !formData.rentalPrice) {
         alert('Vui lòng điền đầy đủ thông tin');
         return;
       }
       
-      // Kiểm tra ảnh chỉ khi thêm mới
       if (!editingId && !imagePreview) {
         alert('Vui lòng chọn ảnh');
+        return;
+      }
+
+      // Validate giá thuê
+      const price = Number(formData.rentalPrice);
+      if (isNaN(price) || price <= 0) {
+        alert('Giá thuê không hợp lệ');
         return;
       }
 
@@ -107,15 +113,19 @@ const Clothes = () => {
       formDataToSend.append('status', formData.status);
       
       if (fileInputRef.current?.files?.[0]) {
-        formDataToSend.append('image', fileInputRef.current.files[0]);
+        const file = fileInputRef.current.files[0];
+        // Validate kích thước file (ví dụ: max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Kích thước ảnh không được vượt quá 5MB');
+          return;
+        }
+        formDataToSend.append('image', file);
       }
 
       if (editingId) {
-        const response = await axios.put(`${API_URL}/${editingId}`, formDataToSend);
-        console.log('Update response:', response.data);
+        await axios.put(`${API_URL}/${editingId}`, formDataToSend);
       } else {
-        const response = await axios.post(API_URL, formDataToSend);
-        console.log('Create response:', response.data);
+        await axios.post(API_URL, formDataToSend);
       }
 
       await fetchClothes();
@@ -123,11 +133,19 @@ const Clothes = () => {
       setEditingId(null);
       setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available' });
       setImagePreview(null);
+      alert(editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
 
-    } catch (error: any) {
-      console.error('Error details:', error);
-      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi lưu dữ liệu';
-      alert(errorMessage);
+    } catch (error: unknown) {
+      const err = error as AxiosError;
+      console.error('Error details:', err);
+      
+      // Xử lý các trường hợp lỗi cụ thể
+      if (err.response?.status === 500) {
+        alert('Có lỗi xảy ra từ hệ thống. Vui lòng thử lại sau hoặc liên hệ admin.');
+      } else {
+        const errorMessage = (err.response?.data as { message: string })?.message || 'Có lỗi xảy ra khi lưu dữ liệu';
+        alert(errorMessage);
+      }
     }
   };
 
@@ -155,7 +173,16 @@ const Clothes = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-800">Quản Lý Quần Áo</h1>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 1, 
+            fontWeight: 'bold', 
+            color: 'primary.main'
+          }}
+        >
+          Quản Lý Quần Áo
+        </Typography>
         <Button 
           variant="contained" 
           startIcon={<Add />}
@@ -169,7 +196,7 @@ const Clothes = () => {
           }}
           onClick={() => setOpen(true)}
         >
-          Thêm Mới
+          Thêm Quần Áo
         </Button>
       </div>
 
@@ -212,7 +239,7 @@ const Clothes = () => {
                 <TableCell align="center">{item.rentalPrice.toLocaleString()}đ</TableCell>
                 <TableCell align="center">
                   <img 
-                    src={`http://localhost:5001${item.image}`} 
+                    src={`http://localhost:5001/uploads/clothes/${item.image.split('/').pop()}`}
                     alt={item.name}
                     style={{ 
                       width: '60px',

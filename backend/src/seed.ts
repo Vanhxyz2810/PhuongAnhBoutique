@@ -1,40 +1,37 @@
 import { AppDataSource } from "./config/database";
-import { Clothes } from "./models/Clothes";
+import { User } from "./models/User";
+import bcrypt from "bcrypt";
 
-const seedData = async () => {
+const createAdmin = async () => {
   try {
     await AppDataSource.initialize();
-    const clothesRepository = AppDataSource.getRepository(Clothes);
+    const userRepository = AppDataSource.getRepository(User);
 
-    // Tạo một số dữ liệu mẫu
-    const sampleClothes = [
-      {
-        name: 'Váy hoa dài',
-        ownerName: 'Shop',
-        rentalPrice: 200000,
-        status: 'available',
-        image: '/uploads/sample1.jpg',
-        description: 'Váy hoa dài phong cách'
-      },
-      {
-        name: 'Áo dài truyền thống',
-        ownerName: 'Shop',
-        rentalPrice: 300000,
-        status: 'available',
-        image: '/uploads/sample2.jpg',
-        description: 'Áo dài truyền thống màu đỏ'
-      }
-    ];
+    // Kiểm tra nếu tài khoản đã tồn tại
+    const existingAdmin = await userRepository.findOne({
+      where: { phone: "12345679" }
+    });
 
-    await clothesRepository.clear(); // Xóa dữ liệu cũ
-    await clothesRepository.save(sampleClothes as any);
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("12345679", 10);
+      const admin = userRepository.create({
+        phone: "12345679",
+        password: hashedPassword,
+        name: "panhcute",
+        role: "admin"
+      });
 
-    console.log('Đã thêm dữ liệu mẫu thành công');
+      await userRepository.save(admin);
+      console.log("Tạo tài khoản admin thành công!");
+    } else {
+      console.log("Tài khoản admin đã tồn tại!");
+    }
+
     process.exit(0);
   } catch (error) {
-    console.error('Lỗi khi thêm dữ liệu mẫu:', error);
+    console.error("Lỗi:", error);
     process.exit(1);
   }
 };
 
-seedData(); 
+createAdmin();

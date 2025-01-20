@@ -14,7 +14,7 @@ import {
   ToggleButtonGroup,
   ToggleButton
 } from '@mui/material';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import axios from 'axios';
 import {
   Chart as ChartJS,
@@ -24,10 +24,17 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  ChartOptions,
+  Scale,
+  TooltipItem,
+  CoreScaleOptions,
 } from 'chart.js';
 import { startOfWeek, startOfMonth } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import styled from '@emotion/styled';
+
+// import { styled as muiStyled } from '@mui/material/styles';
 
 ChartJS.register(
   CategoryScale,
@@ -64,6 +71,25 @@ interface ClothesStats {
   revenue: number;
 }
 
+const CardContent = styled.div`
+  background: white;
+  border-radius: 24px;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+// Cập nhật AnimatedCard
+const AnimatedCard = styled(Paper)`
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+`;
+
+// Thêm filter blur cho border
+const StyledContainer = styled(Container)`
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.1));
+`;
+
 const Revenue = () => {
   const [revenueStats, setRevenueStats] = useState<RevenueStats>({
     daily: 0,
@@ -72,6 +98,8 @@ const Revenue = () => {
   });
   const [chartView, setChartView] = useState<'week' | 'month'>('week');
   const [topClothes, setTopClothes] = useState<Array<ClothesStats & { id: string }>>([]);
+  const [weeklyData, setWeeklyData] = useState<number[]>(Array(7).fill(0));
+  const [monthlyData, setMonthlyData] = useState<number[]>(Array(31).fill(0));
 
   const calculateRevenue = (rentalsData: Rental[]) => {
     const now = new Date();
@@ -134,6 +162,38 @@ const Revenue = () => {
     setTopClothes(sortedClothes);
   };
 
+  const calculateChartData = (rentalsData: Rental[]) => {
+    const now = new Date();
+    const startOfWeekDate = startOfWeek(now, { locale: vi });
+    const startOfMonthDate = startOfMonth(now);
+    
+    // Reset data arrays
+    const weekData = Array(7).fill(0);
+    const monthData = Array(31).fill(0);
+
+    rentalsData.forEach(rental => {
+      if (!rental.isPaid) return;
+      
+      const rentalDate = new Date(rental.createdAt);
+      
+      // Tính doanh thu theo tuần
+      if (rentalDate >= startOfWeekDate) {
+        const dayOfWeek = rentalDate.getDay(); // 0 = CN, 1 = T2, ...
+        const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Chuyển về 0 = T2, ..., 6 = CN
+        weekData[index] += rental.totalAmount;
+      }
+
+      // Tính doanh thu theo tháng
+      if (rentalDate >= startOfMonthDate) {
+        const dayOfMonth = rentalDate.getDate() - 1; // Index từ 0
+        monthData[dayOfMonth] += rental.totalAmount;
+      }
+    });
+
+    setWeeklyData(weekData);
+    setMonthlyData(monthData);
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const [rentalsRes, clothesRes] = await Promise.all([
@@ -144,6 +204,7 @@ const Revenue = () => {
       const rentalsData = rentalsRes.data;
       calculateRevenue(rentalsData);
       calculateTopClothes(rentalsData, clothesRes.data);
+      calculateChartData(rentalsData);
     } catch (error) {
       console.error('Lỗi khi lấy dữ liệu:', error);
     }
@@ -154,139 +215,255 @@ const Revenue = () => {
   }, [fetchData]);
 
   const barChartData = {
-    labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    labels: chartView === 'week' 
+      ? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+      : Array.from({ length: 31 }, (_, i) => `${i + 1}`),
     datasets: [{
       label: 'Doanh Thu',
-      data: [2000000, 3000000, 2500000, 3500000, 3000000, 4500000, 4000000],
+      data: chartView === 'week' ? weeklyData : monthlyData,
       backgroundColor: '#FFB5D8'
     }]
   };
 
-  const pieChartData = {
-    labels: ['Áo dài', 'Váy cưới', 'Vest', 'Đầm dạ hội'],
-    datasets: [{
-      data: [40, 25, 20, 15],
-      backgroundColor: ['#FFB5D8', '#B5D8FF', '#D8FFB5', '#FFD8B5']
-    }]
+  const chartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(
+            this: Scale<CoreScaleOptions>, 
+            tickValue: number | string
+          ) {
+            const value = Number(tickValue);
+            if (value >= 1000000) {
+              return (value / 1000000).toLocaleString('vi-VN') + 'M';
+            }
+            return value.toLocaleString('vi-VN') + 'đ';
+          },
+          font: {
+            size: 10
+          }
+        }
+      },
+      x: {
+        ticks: {
+          font: {
+            size: 10
+          },
+          maxRotation: chartView === 'month' ? 90 : 0, // Xoay label khi xem theo tháng
+          minRotation: chartView === 'month' ? 90 : 0
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(tooltipItem: TooltipItem<'bar'>) {
+            const value = Number(tooltipItem.formattedValue);
+            return value.toLocaleString('vi-VN') + 'đ';
+          }
+        }
+      }
+    }
   };
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h4" sx={{ mb: 4, color: '#FF69B4', textAlign: 'left' }}>
+    <StyledContainer maxWidth="lg">
+      <Typography 
+        variant="h4" 
+          sx={{ 
+            mb: 1, 
+            fontWeight: 'bold', 
+            color: 'primary.main',
+            textAlign: 'center'
+          }}
+      >
         Thống Kê Doanh Thu
       </Typography>
 
-      {/* Revenue Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ 
-            p: 3, 
-            bgcolor: '#FFE4E1',
-            borderRadius: 4,
-            textAlign: 'left'
-          }}>
-            <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-              Doanh Thu Hôm Nay
-            </Typography>
-            <Typography variant="h4" sx={{ color: '#FF1493', fontWeight: 'bold' }}>
-              {revenueStats.daily.toLocaleString()}đ
-            </Typography>
-          </Paper>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <AnimatedCard>
+            <CardContent>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  mb: 1, 
+                  color: '#666',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1rem', sm: '1.4rem' }
+                }}
+              >
+                Doanh Thu Hôm Nay
+              </Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: '#FF1493', 
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  fontSize: { xs: '1.9rem', sm: '2rem' }
+                }}
+              >
+                {revenueStats.daily.toLocaleString()}đ
+              </Typography>
+            </CardContent>
+          </AnimatedCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ 
-            p: 3, 
-            bgcolor: '#E6E6FA',
-            borderRadius: 4,
-            textAlign: 'left'
-          }}>
-            <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-              Doanh Thu Tuần Này
-            </Typography>
-            <Typography variant="h4" sx={{ color: '#9370DB', fontWeight: 'bold' }}>
-              {revenueStats.weekly.toLocaleString()}đ
-            </Typography>
-          </Paper>
+        <Grid item xs={12} sm={6} md={4}>
+          <AnimatedCard>
+            <CardContent>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  mb: 1, 
+                  color: '#666',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1rem', sm: '1.4rem' }
+                }}
+              >
+                Doanh Thu Tuần Này
+              </Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: '#9370DB', 
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  fontSize: { xs: '1.9rem', sm: '2rem' }
+                }}
+              >
+                {revenueStats.weekly.toLocaleString()}đ
+              </Typography>
+            </CardContent>
+          </AnimatedCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ 
-            p: 3, 
-            bgcolor: '#E0FFFF',
-            borderRadius: 4,
-            textAlign: 'left'
-          }}>
-            <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-              Doanh Thu Tháng Này
-            </Typography>
-            <Typography variant="h4" sx={{ color: '#20B2AA', fontWeight: 'bold' }}>
-              {revenueStats.monthly.toLocaleString()}đ
-            </Typography>
-          </Paper>
+        <Grid item xs={12} sm={6} md={4}>
+          <AnimatedCard>
+            <CardContent>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  mb: 1, 
+                  color: '#666',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1rem', sm: '1.4rem' }
+                }}
+              >
+                Doanh Thu Tháng Này
+              </Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: '#20B2AA', 
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}
+              >
+                {revenueStats.monthly.toLocaleString()}đ
+              </Typography>
+            </CardContent>
+          </AnimatedCard>
         </Grid>
-      </Grid>
 
-      {/* Charts Section */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, borderRadius: 4 }}>
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6">Biểu Đồ Doanh Thu</Typography>
+        {/* Charts */}
+        <Grid item xs={12} md={12}>
+          <Paper sx={{ 
+            p: { xs: 2, sm: 3 },
+            height: 'auto',
+            width: '100%',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ 
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 1, sm: 2 },
+              mb: 2,
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <Typography variant="h6" sx={{ 
+                fontSize: { xs: '1rem', sm: '1.25rem' }
+              }}>
+                Biểu Đồ Doanh Thu
+              </Typography>
               <ToggleButtonGroup
                 value={chartView}
                 exclusive
                 onChange={(_, value) => value && setChartView(value)}
                 size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    px: { xs: 1, sm: 2 },
+                    py: { xs: 0.5, sm: 1 },
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                  }
+                }}
               >
                 <ToggleButton value="week">TUẦN</ToggleButton>
                 <ToggleButton value="month">THÁNG</ToggleButton>
               </ToggleButtonGroup>
             </Box>
-            <Box sx={{ height: 300 }}>
-              <Bar data={barChartData} options={{ maintainAspectRatio: false }} />
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 4 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Tỷ Lệ Cho Thuê Theo Loại
-            </Typography>
-            <Box sx={{ height: 300 }}>
-              <Pie data={pieChartData} />
+            <Box sx={{ 
+              width: '100%',
+              height: { xs: 300, sm: 400 },
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              maxWidth: '100%'
+            }}>
+              <Bar 
+                data={barChartData} 
+                options={{
+                  ...chartOptions,
+                  maintainAspectRatio: false,
+                  responsive: true
+                }}
+              />
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Top Products Table */}
-      <Paper sx={{ mt: 3, p: 3, borderRadius: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Top Quần Áo Được Thuê Nhiều Nhất
-        </Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Tên Quần Áo</TableCell>
-                <TableCell align="center">Số Lần Thuê</TableCell>
-                <TableCell align="right">Doanh Thu</TableCell>
+      {/* Table */}
+      <TableContainer 
+        component={Paper}
+        sx={{ 
+          mt: { xs: 2, sm: 3 },
+          overflowX: 'auto'
+        }}
+      >
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Tên Quần Áo</TableCell>
+              <TableCell align="center">Số Lần Thuê</TableCell>
+              <TableCell align="right">Doanh Thu</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {topClothes.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell align="center">{item.count}</TableCell>
+                <TableCell align="right">
+                  {item.revenue.toLocaleString()}đ
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {topClothes.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell align="center">{item.count}</TableCell>
-                  <TableCell align="right">
-                    {item.revenue.toLocaleString()}đ
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-    </Container>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </StyledContainer>
   );
 };
 

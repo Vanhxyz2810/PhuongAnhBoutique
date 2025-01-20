@@ -21,6 +21,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../utils/axios';
+import { AxiosError } from 'axios';
 
 interface ClothesItem {
   id: string;
@@ -38,6 +40,7 @@ const Customers = () => {
   const [clothes, setClothes] = useState<ClothesItem[]>([]);
   const [selectedClothes, setSelectedClothes] = useState<SelectedClothes[]>([]);
   const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');
   const [identityCard, setIdentityCard] = useState<File | null>(null);
   const [rentDate, setRentDate] = useState<Date | null>(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
@@ -55,6 +58,13 @@ const Customers = () => {
     };
     fetchClothes();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const handleAddClothes = () => {
     setSelectedClothes([...selectedClothes, { id: '', quantity: 1 }]);
@@ -75,57 +85,57 @@ const Customers = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
-    if (!customerName || !rentDate || !returnDate || selectedClothes.length === 0) {
-      alert('Vui lòng điền đầy đủ thông tin');
-      return;
-    }
-
-    // Validate selected clothes
-    if (selectedClothes.some(item => !item.id || item.quantity < 1)) {
-      alert('Vui lòng chọn quần áo và số lượng hợp lệ');
-      return;
-    }
-
     try {
-      const formData = new FormData();
-      formData.append('customerName', customerName);
-      formData.append('clothesIds', JSON.stringify(selectedClothes.map(item => item.id)));
-      formData.append('quantities', JSON.stringify(selectedClothes.map(item => item.quantity)));
-      formData.append('rentDate', rentDate.toISOString());
-      formData.append('returnDate', returnDate.toISOString());
-      formData.append('isPaid', String(isPaid));
-      formData.append('totalAmount', String(calculateTotal()));
-      if (identityCard) {
-        formData.append('identityCard', identityCard);
+      const rentalFormData = new FormData();
+      rentalFormData.append('customerName', customerName);
+      rentalFormData.append('phone', phone);
+      if (rentDate) {
+        rentalFormData.append('rentDate', rentDate.toISOString());
+      }
+      if (returnDate) {
+        rentalFormData.append('returnDate', returnDate.toISOString());
+      }
+      rentalFormData.append('totalAmount', calculateTotal().toString());
+      
+      // Đảm bảo chỉ gửi một clothesId
+      if (selectedClothes && selectedClothes.length > 0) {
+        rentalFormData.append('clothesId', selectedClothes[0].id);
       }
 
-      console.log('Submitting form data:', Object.fromEntries(formData));
+      console.log('Submitting rental data:', {
+        customerName,
+        phone,
+        rentDate: rentDate?.toISOString(),
+        returnDate: returnDate?.toISOString(),
+        totalAmount: calculateTotal(),
+        clothesId: selectedClothes?.[0]?.id
+      });
 
-      const response = await axios.post('http://localhost:5001/api/rentals', formData, {
+      const response = await axiosInstance.post('/rentals', rentalFormData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
 
-      if (response.status === 201) {
+      if (response.data) {
         alert('Tạo đơn thuê thành công!');
-        // Reset form
         setCustomerName('');
-        setSelectedClothes([]);
+        setPhone('');
         setIdentityCard(null);
         setRentDate(new Date());
         setReturnDate(null);
+        setSelectedClothes([]);
         setIsPaid(false);
-        
-        // Chuyển hướng đến trang Rentals
         navigate('/rentals');
       }
-
-    } catch (error: any) {
-      console.error('Lỗi khi tạo đơn thuê:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê');
+    } catch (error) {
+      console.error('Rental creation error:', error);
+      if (error instanceof AxiosError) {
+        // Hiển thị message từ server nếu có
+        alert(error.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê');
+      } else {
+        alert('Có lỗi xảy ra khi tạo đơn thuê');
+      }
     }
   };
 
@@ -156,7 +166,16 @@ const Customers = () => {
 
   return (
     <Container maxWidth="lg">
-      <Typography variant="h4" sx={{ mb: 4 }}>Tạo Đơn Thuê Mới</Typography>
+      <Typography 
+          variant="h4" 
+          sx={{ 
+            mb: 1, 
+            fontWeight: 'bold', 
+            color: 'primary.main'
+          }}
+        >
+          Tạo Đơn Thuê Mới
+        </Typography>
       
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit}>
@@ -167,6 +186,16 @@ const Customers = () => {
                 label="Tên khách hàng"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+                required
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
               />
             </Grid>

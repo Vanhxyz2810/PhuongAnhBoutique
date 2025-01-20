@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './theme';
@@ -11,24 +11,71 @@ import Revenue from './pages/Revenue';
 import ProductDetail from './pages/ProductDetail';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import MyOrders from './pages/MyOrders';
+import { useAuth } from './hooks/useAuth';
+import Login from './pages/Login';
+import Register from './pages/Register';
+
+const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to="/" />;
+  }
+  
+  return <>{children}</>;
+};
 
 function App() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <BrowserRouter>
+        <Router>
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/clothes" element={<Clothes />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/rentals" element={<Rentals />} />
-              <Route path="/revenue" element={<Revenue />} />
+              
+              {/* Routes cho admin */}
+              <Route path="/clothes" element={
+                <PrivateRoute roles={['admin']}>
+                  <Clothes />
+                </PrivateRoute>
+              } />
+              <Route path="/customers" element={
+                <PrivateRoute roles={['admin']}>
+                  <Customers />
+                </PrivateRoute>
+              } />
+              <Route path="/rentals" element={
+                <PrivateRoute roles={['admin']}>
+                  <Rentals />
+                </PrivateRoute>
+              } />
+              <Route path="/revenue" element={
+                <PrivateRoute roles={['admin']}>
+                  <Revenue />
+                </PrivateRoute>
+              } />
+              
+              {/* Route cho user đã đăng nhập */}
+              <Route path="/my-orders" element={
+                <PrivateRoute>
+                  <MyOrders />
+                </PrivateRoute>
+              } />
+              
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             </Routes>
           </Layout>
-        </BrowserRouter>
+        </Router>
       </ThemeProvider>
     </LocalizationProvider>
   );

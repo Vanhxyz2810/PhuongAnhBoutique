@@ -24,28 +24,39 @@ export default {
         return res.status(400).json({ message: 'Vui lòng upload ảnh' });
       }
 
+      console.log('Request body:', req.body);
+      console.log('File:', req.file);
+
+      const { name, ownerName, rentalPrice, description } = req.body;
+      const image = req.file ? `/uploads/clothes/${req.file.filename}` : '';
+
       const clothes = clothesRepository.create({
-        name: req.body.name,
-        ownerName: req.body.ownerName,
-        rentalPrice: Number(req.body.rentalPrice),
-        description: req.body.description,
-        status: req.body.status || 'available',
-        image: `/uploads/${req.file.filename}`
+        name,
+        ownerName,
+        rentalPrice: Number(rentalPrice),
+        description,
+        image,
+        status: 'available'
       });
 
       await clothesRepository.save(clothes);
+      console.log('Saved clothes:', clothes);
 
-      res.status(201).json({
-        ...clothes,
-        image: `http://localhost:5001${clothes.image}`
-      });
+      res.status(201).json(clothes);
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating clothes:', error);
       if (req.file) {
-        fs.unlinkSync(req.file.path);
+        const filePath = req.file.path;
+        console.log('Deleting file:', filePath);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       }
-      res.status(500).json({ message: 'Lỗi khi lưu dữ liệu' });
+      res.status(500).json({ 
+        message: 'Lỗi khi lưu dữ liệu',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }) as RequestHandler,
 
@@ -73,7 +84,7 @@ export default {
         rentalPrice: Number(req.body.rentalPrice),
         description: req.body.description,
         status: req.body.status,
-        ...(req.file && { image: `/uploads/${req.file.filename}` })
+        ...(req.file && { image: `/uploads/clothes/${req.file.filename}` })
       });
 
       const updatedClothes = await clothesRepository.findOne({
