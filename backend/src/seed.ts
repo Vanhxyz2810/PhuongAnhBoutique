@@ -13,11 +13,11 @@ const createAdmin = async () => {
     });
 
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("12345679", 10);
+      const hashedPassword = await bcrypt.hash("admin123", 10);
       const admin = userRepository.create({
         phone: "12345679",
         password: hashedPassword,
-        name: "panhcute",
+        name: "Admin PA Boutique",
         role: "admin"
       });
 
