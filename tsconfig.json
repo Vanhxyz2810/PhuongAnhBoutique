@@ -1,17 +1,29 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "jsx": "react-jsx",
+    "outDir": "./dist",
+    "rootDir": ".",
     "paths": {
       "react": ["./node_modules/@types/react"]
     }
@@ -20,5 +32,6 @@
     "frontend/src/**/*",
     "backend/src/**/*"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
