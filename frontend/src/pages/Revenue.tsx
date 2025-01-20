@@ -197,8 +197,8 @@ const Revenue = () => {
   const fetchData = useCallback(async () => {
     try {
       const [rentalsRes, clothesRes] = await Promise.all([
-        axios.get<Rental[]>('http://localhost:5001/api/rentals'),
-        axios.get<Clothes[]>('http://localhost:5001/api/clothes')
+        axios.get<Rental[]>('https://phuonganhboutique-production.up.railway.app/api/rentals'),
+        axios.get<Clothes[]>('https://phuonganhboutique-production.up.railway.app/api/clothes')
       ]);
 
       const rentalsData = rentalsRes.data;

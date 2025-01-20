@@ -80,7 +80,7 @@ const MyOrders = () => {
               <CardMedia
                 component="img"
                 sx={{ width: 140, height: 140, objectFit: 'cover' }}
-                image={`http://localhost:5001${order.clothes.images[0]}`}
+                image={`https://phuonganhboutique-production.up.railway.app${order.clothes.images[0]}`}
                 alt={order.clothes.name}
               />
               <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, ml: 2 }}>

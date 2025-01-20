@@ -296,7 +296,7 @@ const ProductDetail = () => {
               }}
             >
               <img
-                src={`http://localhost:5001${product.images[selectedImage]}`}
+                src={`https://phuonganhboutique-production.up.railway.app${product.images[selectedImage]}`}
                 alt={product.name}
                 style={{
                   width: '100%',
@@ -331,7 +331,7 @@ const ProductDetail = () => {
                   }}
                 >
                   <img
-                    src={`http://localhost:5001${image}`}
+                    src={`https://phuonganhboutique-production.up.railway.app${image}`}
                     alt={`${product.name} thumbnail ${index + 1}`}
                     style={{
                       width: '100%',

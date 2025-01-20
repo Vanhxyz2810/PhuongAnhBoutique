@@ -33,7 +33,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/register', formData);
+      const response = await axios.post('https://phuonganhboutique-production.up.railway.app/api/auth/register', formData);
       console.log('Register response:', response.data);
       
       const { token, user } = response.data;

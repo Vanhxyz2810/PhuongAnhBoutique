@@ -50,7 +50,7 @@ const Customers = () => {
   useEffect(() => {
     const fetchClothes = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/clothes');
+        const response = await axios.get('https://phuonganhboutique-production.up.railway.app/api/clothes');
         setClothes(response.data.filter((item: ClothesItem) => item.status === 'available'));
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);

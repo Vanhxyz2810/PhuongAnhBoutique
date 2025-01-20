@@ -272,7 +272,7 @@ const Rentals = () => {
                       <Tooltip title="Xem CCCD">
                         <IconButton 
                           size="small"
-                          onClick={() => handleOpenImage(`http://localhost:5001${rental.identityCard}`)}
+                          onClick={() => handleOpenImage(`https://phuonganhboutique-production.up.railway.app${rental.identityCard}`)}
                         >
                           <VisibilityIcon />
                         </IconButton>
