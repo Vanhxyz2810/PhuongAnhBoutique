@@ -21,10 +21,11 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import Snowfall from 'react-snowfall';
 // import axios from 'axios';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import vi from 'date-fns/locale/vi';
+// import { enUS } from 'date-fns/locale';
+// import viLocale from 'date-fns/locale/vi';
 import { CloudUpload } from '@mui/icons-material';
 import axiosInstance from '../utils/axios';
 import { AxiosError } from 'axios';
@@ -524,43 +525,39 @@ const ProductDetail = () => {
                 )}
               </Grid>
               <Grid item xs={12} md={6}>
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                  <DatePicker
-                    label="Ngày thuê"
-                    value={formData.rentDate}
-                    onChange={(date) => setFormData(prev => ({
-                      ...prev,
-                      rentDate: date
-                    }))}
-                    minDate={new Date()}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        required: true
-                      }
-                    }}
-                  />
-                </LocalizationProvider>
+                <DatePicker
+                  label="Ngày thuê"
+                  value={formData.rentDate}
+                  onChange={(date) => setFormData(prev => ({
+                    ...prev,
+                    rentDate: date
+                  }))}
+                  minDate={new Date()}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true
+                    }
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                  <DatePicker
-                    label="Ngày trả"
-                    value={formData.returnDate}
-                    onChange={(date) => setFormData(prev => ({
-                      ...prev,
-                      returnDate: date
-                    }))}
-                    minDate={formData.rentDate || new Date()}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        required: true
-                      }
-                    }}
-                  />
-                </LocalizationProvider>
+                <DatePicker
+                  label="Ngày trả"
+                  value={formData.returnDate}
+                  onChange={(date) => setFormData(prev => ({
+                    ...prev,
+                    returnDate: date
+                  }))}
+                  minDate={formData.rentDate || new Date()}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true
+                    }
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12}>
