@@ -5,11 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
+    outDir: 'dist',
+    sourcemap: false,
     rollupOptions: {
-      external: ['date-fns/locale/en-US'],
       output: {
         manualChunks: {
-          'date-fns': ['date-fns']
+          vendor: ['react', 'react-dom'],
+          mui: ['@mui/material', '@mui/icons-material']
         }
       }
     }
