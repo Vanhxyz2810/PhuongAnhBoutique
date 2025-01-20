@@ -6,6 +6,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://your-backend-url.railway.app/api"
+    "VITE_API_URL": "https://phuonganhboutique-production.up.railway.app/api"
   }
 } 

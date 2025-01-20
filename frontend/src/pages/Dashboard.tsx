@@ -134,7 +134,7 @@ const Dashboard = () => {
                 }}>
                   <CardMedia
                     component="img"
-                    image={`http://localhost:5001/uploads/clothes/${item.image.split('/').pop()}`}
+                    image={`https://phuonganhboutique-production.up.railway.app/uploads/clothes/${item.image.split('/').pop()}`}
                     alt={item.name}
                     sx={{ 
                       position: 'absolute',

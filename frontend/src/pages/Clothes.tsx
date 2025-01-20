@@ -43,7 +43,7 @@ interface FormData {
   status: 'available' | 'rented';
 }
 
-const API_URL = 'http://localhost:5001/api/clothes';
+const API_URL = import.meta.env.VITE_API_URL + '/clothes';
 
 const Clothes = () => {
   const [clothes, setClothes] = useState<Clothes[]>([]);
@@ -239,7 +239,7 @@ const Clothes = () => {
                 <TableCell align="center">{item.rentalPrice.toLocaleString()}đ</TableCell>
                 <TableCell align="center">
                   <img 
-                    src={`http://localhost:5001/uploads/clothes/${item.image.split('/').pop()}`}
+                    src={`https://phuonganhboutique-production.up.railway.app/uploads/clothes/${item.image.split('/').pop()}`}
                     alt={item.name}
                     style={{ 
                       width: '60px',
