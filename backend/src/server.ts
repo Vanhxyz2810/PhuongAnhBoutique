@@ -9,6 +9,9 @@ import clothesController from './controllers/clothesController';
 import rentalRouter from './routes/rental';
 import authRouter from './routes/auth';
 import fs from 'fs';
+import { User } from './models/User';
+import bcrypt from 'bcrypt';
+import { AppDataSource } from './config/database';
 
 dotenv.config();
 
@@ -34,8 +37,38 @@ uploadDirs.forEach(dir => {
   }
 });
 
+// Seed admin user
+const seedAdmin = async () => {
+  try {
+    const userRepository = AppDataSource.getRepository(User);
+    const existingAdmin = await userRepository.findOne({
+      where: { phone: "12345679" }
+    });
+
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const admin = userRepository.create({
+        phone: "12345679",
+        password: hashedPassword,
+        name: "Admin PA Boutique",
+        role: "admin"
+      });
+
+      await userRepository.save(admin);
+      console.log("Tạo tài khoản admin thành công!");
+    } else {
+      console.log("Tài khoản admin đã tồn tại!");
+    }
+  } catch (error) {
+    console.error("Lỗi khi tạo admin:", error);
+  }
+};
+
 // Connect to SQLite
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Seed admin user
+  await seedAdmin();
+
   // Routes
   app.use('/api/clothes', router);
   app.use('/api/rentals', rentalRouter);
