@@ -8,6 +8,7 @@ import path from 'path';
 import clothesController from './controllers/clothesController';
 import rentalRouter from './routes/rental';
 import authRouter from './routes/auth';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -20,6 +21,18 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/identity', express.static(path.join(__dirname, '../uploads/identity')));
 app.use('/uploads/clothes', express.static(path.join(__dirname, '../uploads/clothes')));
+
+const uploadDirs = [
+  path.join(__dirname, '../uploads'),
+  path.join(__dirname, '../uploads/clothes'),
+  path.join(__dirname, '../uploads/identity')
+];
+
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Connect to SQLite
 connectDB().then(() => {

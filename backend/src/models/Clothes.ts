@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Rental } from "./Rental";
 
 export type ClothesStatus = 'available' | 'pending' | 'rented' | 'maintenance';
 
@@ -7,30 +8,36 @@ export class Clothes {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   ownerName!: string;
 
-  @Column()
+  @Column({ type: 'float' })
   rentalPrice!: number;
+
+  @Column({
+    type: 'text',
+    nullable: true
+  })
+  description!: string;
+
+  @Column({ type: 'varchar' })
+  image!: string;
 
   @Column({
     type: 'varchar',
     default: 'available'
   })
-  status!: ClothesStatus;
+  status!: string;
 
-  @Column()
-  image!: string;
-
-  @Column({ nullable: true })
-  description?: string;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'datetime' })
   updatedAt!: Date;
+
+  @OneToMany(() => Rental, rental => rental.clothes)
+  rentals!: Rental[];
 } 

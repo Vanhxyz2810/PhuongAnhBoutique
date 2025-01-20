@@ -3,6 +3,8 @@ import { Clothes } from '../models/Clothes';
 import { AppDataSource } from '../config/database';
 import fs from 'fs';
 import path from 'path';
+import { MulterRequest } from '../config/multer';
+import { Rental } from '../models/Rental';
 
 const clothesRepository = AppDataSource.getRepository(Clothes);
 
@@ -18,7 +20,7 @@ export default {
     }
   }) as RequestHandler,
 
-  create: (async (req, res) => {
+  create: (async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: 'Vui lòng upload ảnh' });
@@ -60,7 +62,7 @@ export default {
     }
   }) as RequestHandler,
 
-  update: (async (req, res) => {
+  update: (async (req: MulterRequest, res) => {
     try {
       const clothes = await clothesRepository.findOne({
         where: { id: req.params.id }
@@ -100,17 +102,38 @@ export default {
   delete: (async (req, res) => {
     try {
       const clothes = await clothesRepository.findOne({
-        where: { id: req.params.id }
+        where: { id: req.params.id },
+        relations: ['rentals']
       });
 
       if (!clothes) {
         return res.status(404).json({ message: 'Không tìm thấy' });
       }
 
+      // Xóa file ảnh
+      if (clothes.image) {
+        const imagePath = path.join(__dirname, '../../uploads', path.basename(clothes.image));
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      }
+
+      // Xóa các rental liên quan trước
+      if (clothes.rentals && clothes.rentals.length > 0) {
+        const rentalRepo = AppDataSource.getRepository(Rental);
+        await rentalRepo.remove(clothes.rentals);
+      }
+
+      // Sau đó xóa clothes
       await clothesRepository.remove(clothes);
       res.json({ message: 'Đã xóa thành công' });
+
     } catch (error) {
-      res.status(500).json({ message: 'Lỗi khi xóa' });
+      console.error('Error deleting clothes:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi xóa',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }) as RequestHandler,
 

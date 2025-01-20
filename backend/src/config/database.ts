@@ -5,28 +5,25 @@ import { User } from '../models/User';
 import { Session } from '../models/Session';
 import path from 'path';
 
-// Sử dụng đường dẫn tuyệt đối
-const dbPath = path.resolve(__dirname, '../../database1.sqlite');
-console.log('Database path:', dbPath); // Log để kiểm tra đường dẫn
+const dbPath = path.join(__dirname, '../../database.sqlite');
+console.log('Database path:', dbPath);
 
 export const AppDataSource = new DataSource({
-  type: "postgres",
-  url: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  type: "sqlite",
+  database: dbPath,
   synchronize: true,
-  logging: process.env.NODE_ENV !== 'production',
-  entities: [User, Clothes, Rental, Session],
+  logging: true,
+  entities: [Clothes, Rental, User, Session],
   migrations: [],
-  subscribers: [],
+  subscribers: []
 });
 
 export const connectDB = async () => {
   try {
     await AppDataSource.initialize();
-    console.log("Database connected successfully at:", dbPath);
+    console.log("Database connected successfully");
   } catch (error) {
-    console.error("Lỗi kết nối database:", error);
-    console.error("Database path:", dbPath);
+    console.error("Error connecting to database:", error);
     process.exit(1);
   }
 }; 
