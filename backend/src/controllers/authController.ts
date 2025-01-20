@@ -36,9 +36,9 @@ export class AuthController {
 
       // Tạo token
       const token = jwt.sign(
-        { id: user.id, role: user.role },
+        { id: user.id, phone: user.phone, role: user.role },
         process.env.JWT_SECRET || 'pa-boutique-secret-key-2024',
-        { expiresIn: '1d' }
+        { expiresIn: '7d' }
       );
 
       // Trả về cả token và thông tin user
@@ -86,7 +86,7 @@ export class AuthController {
           role: user.role 
         },
         process.env.JWT_SECRET || 'pa-boutique-secret-key-2024',
-        { expiresIn: '30d' }
+        { expiresIn: '7d' }
       );
 
       // Lưu session vào database

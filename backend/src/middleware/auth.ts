@@ -1,43 +1,24 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Request } from 'express';
+import { AuthRequest } from '../types';
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: number;
-    name: string;
-    phone: string;
-    role: string;
-  };
-}
-
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    console.log('Auth Middleware - JWT_SECRET:', process.env.JWT_SECRET);
-    console.log('Auth Middleware - Received token:', token);
-
+    const token = req.headers.authorization?.split(' ')[1];
+    
     if (!token) {
-      console.log('Auth Middleware - No token provided');
-      return res.status(401).json({ message: 'Token không tồn tại' });
+      return res.status(401).json({ message: 'Không tìm thấy token' });
     }
 
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        id: number;
-        name: string;
-        phone: string;
-        role: string;
-      };
-      console.log('Auth Middleware - Decoded token:', decoded);
-      req.user = decoded;
-      next();
-    } catch (jwtError) {
-      console.error('Auth Middleware - JWT verification error:', jwtError);
-      return res.status(401).json({ message: 'Token không hợp lệ' });
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined');
     }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded as any;
+    next();
   } catch (error) {
-    console.error('Auth Middleware - General error:', error);
-    res.status(401).json({ message: 'Vui lòng đăng nhập' });
+    console.error('Auth Middleware Error:', error);
+    res.status(401).json({ message: 'Token không hợp lệ' });
   }
 }; 
