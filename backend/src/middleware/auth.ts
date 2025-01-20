@@ -21,4 +21,7 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
     console.error('Auth Middleware Error:', error);
     res.status(401).json({ message: 'Token không hợp lệ' });
   }
+
+  
 }; 
+

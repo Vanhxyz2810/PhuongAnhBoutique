@@ -1,5 +1,5 @@
 import { Response, NextFunction, RequestHandler } from 'express';
-import { AuthRequest } from './auth';
+import { AuthRequest } from '../types';
 
 export const checkRole = (roles: string[]): RequestHandler => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
