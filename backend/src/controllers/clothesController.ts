@@ -33,15 +33,21 @@ export default {
       const file = req.file;
 
       if (file) {
-        // Upload to Cloudinary instead of local
+        // Upload to Cloudinary và lưu URL trực tiếp
         const imageUrl = await uploadToCloudinary(file);
+        // Không cần thêm path prefix vì Cloudinary đã trả về URL đầy đủ
         clothesData.image = imageUrl;
       }
 
-      const clothes = clothesRepository.create(clothesData);
-      await clothesRepository.save(clothes);
+      const clothes = clothesRepository.create({
+        ...clothesData,
+        rentalPrice: Number(clothesData.rentalPrice),
+        status: 'available'
+      });
 
+      await clothesRepository.save(clothes);
       res.status(201).json(clothes);
+
     } catch (error) {
       console.error('Error creating clothes:', error);
       res.status(500).json({ message: 'Lỗi server' });

@@ -134,7 +134,7 @@ const Dashboard = () => {
                 }}>
                   <CardMedia
                     component="img"
-                    image={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${item.image.split('/').pop()}`}
+                    image={item.image}
                     alt={item.name}
                     sx={{ 
                       position: 'absolute',
