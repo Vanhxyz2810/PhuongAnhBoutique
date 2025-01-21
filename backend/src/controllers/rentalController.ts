@@ -101,8 +101,8 @@ export default {
         orderCode: parseInt(orderCode.replace(/\D/g, '')),
         amount: Number(totalAmount),
         description: `Thuê đồ - ${orderCode}`,
-        cancelUrl: `${process.env.FRONTEND_URL}/cancel-payment`,
-        returnUrl: `${process.env.FRONTEND_URL}/success-payment`,
+        cancelUrl: `${process.env.VITE_APP_URL}/cancel-payment`,
+        returnUrl: `${process.env.VITE_APP_URL}/success-payment`,
         items: [{
           name: clothes.name,
           quantity: 1,
