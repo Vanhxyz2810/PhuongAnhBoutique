@@ -1,13 +1,18 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
-  "env": {
-    "VITE_API_URL": "https://phuonganhboutique-production.up.railway.app/api"
-  },
-  "buildCommand": "npm run build",
-  "installCommand": "npm install --legacy-peer-deps --force"
-} 
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "frontend/dist/$1"
+    }
+  ]
+}
