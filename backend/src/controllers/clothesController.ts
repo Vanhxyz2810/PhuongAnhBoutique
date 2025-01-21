@@ -164,7 +164,7 @@ export default {
         name: clothes.name,
         price: clothes.rentalPrice,
         originalPrice: clothes.rentalPrice * 2,
-        images: [clothes.image], // Chỉ trả về tên file, để frontend xử lý URL đầy đủ
+        images: clothes.image ? [clothes.image] : [],
         sizes: ['S', 'M', 'L'],
         description: clothes.description || 'Chưa có mô tả',
         sku: `SP${clothes.id}`

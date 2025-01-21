@@ -58,11 +58,10 @@ interface Product {
   name: string;
   price: number;
   originalPrice: number;
-  images: string[];
+  images: string[];  // Array of image filenames
   sizes: string[];
   description: string;
   sku: string;
-  image: string;
 }
 
 interface ApiError {
@@ -334,7 +333,7 @@ const ProductDetail = () => {
               }}
             >
               <img
-                src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${product.image}`}
+                src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${product.images[0]}`}
                 alt={product.name}
                 style={{
                   width: '100%',
