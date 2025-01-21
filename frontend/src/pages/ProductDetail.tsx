@@ -185,13 +185,24 @@ const ProductDetail = () => {
           const response = await axiosInstance.get(`/rentals/check-payment/${paymentInfo.orderCode}`);
           console.log('Payment status:', response.data);
           
-          // Kiểm tra cả hai trường hợp: PAID và 00 (theo docs PayOS)
-          if (response.data.status === 'PAID' || response.data.code === '00') {
+          // Kiểm tra URL hiện tại có phải là callback từ PayOS không
+          const currentUrl = new URL(window.location.href);
+          if (currentUrl.pathname.includes('/success')) {
+            // Gọi API để cập nhật trạng thái thanh toán
+            await axiosInstance.post(`/rentals/update-payment/${paymentInfo.orderCode}`, {
+              status: 'PAID'
+            });
+            
+            // Redirect về trang success của ứng dụng
+            window.location.href = `${import.meta.env.VITE_APP_URL}/rental-success?orderCode=${paymentInfo.orderCode}&amount=${calculateTotal()}`;
+            return;
+          }
+
+          // Polling bình thường
+          if (response.data.status === 'PAID') {
             clearInterval(intervalId);
             setShowPayment(false);
-            
-            // Thay vì navigate, sử dụng window.location.href
-            window.location.href = `${window.location.origin}/rental-success?orderCode=${paymentInfo.orderCode}&amount=${calculateTotal()}`;
+            window.location.href = `${import.meta.env.VITE_APP_URL}/rental-success?orderCode=${paymentInfo.orderCode}&amount=${calculateTotal()}`;
           }
         } catch (error) {
           console.error('Error checking payment status:', error);

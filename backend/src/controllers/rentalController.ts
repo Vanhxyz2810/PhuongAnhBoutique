@@ -434,5 +434,33 @@ export default {
       console.error('Error getting rental:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
-  }) as RequestHandler
+  }) as RequestHandler,
+
+  updatePayment: async (req: Request, res: Response) => {
+    try {
+      const { orderCode } = req.params;
+      const { status } = req.body;
+
+      const rental = await rentalRepository.findOne({
+        where: { orderCode },
+        relations: ['clothes']
+      });
+
+      if (!rental) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      rental.status = status;
+      if (status === 'PAID') {
+        rental.approvedAt = new Date();
+      }
+
+      await rentalRepository.save(rental);
+
+      res.json({ message: 'Cập nhật trạng thái thành công' });
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  }
 }; 

@@ -15,5 +15,6 @@ router.get('/', auth as RequestHandler, checkRole(['admin']) as RequestHandler, 
 router.put('/:id/status', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.updateStatus as RequestHandler);
 
 router.post('/webhook', rentalController.handlePaymentWebhook);
+router.post('/update-payment/:orderCode', rentalController.updatePayment);
 
 export default router; 
