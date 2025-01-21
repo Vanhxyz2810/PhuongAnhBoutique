@@ -8,6 +8,8 @@
         "seed": "ts-node src/seed.ts"
     },
     "dependencies": {
+        "@payos/node": "^1.0.10",
+        "@payos/payos-checkout": "^1.0.8",
         "@types/express": "^4.17.21",
         "bcrypt": "^5.1.1",
         "cors": "^2.8.5",
@@ -17,9 +19,9 @@
         "multer": "^1.4.5-lts.1",
         "reflect-metadata": "^0.1.13",
         "sqlite3": "^5.1.7",
-        "typescript": "^5.3.3",
         "ts-node": "^10.9.2",
-        "typeorm": "^0.3.17"
+        "typeorm": "^0.3.17",
+        "typescript": "^5.3.3"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.2",

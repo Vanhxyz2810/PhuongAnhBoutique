@@ -126,7 +126,7 @@ const Customers = () => {
         setReturnDate(null);
         setSelectedClothes([]);
         setIsPaid(false);
-        navigate('/rentals');
+        window.location.href = response.data.paymentUrl;
       }
     } catch (error) {
       console.error('Rental creation error:', error);

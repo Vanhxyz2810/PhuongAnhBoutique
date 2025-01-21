@@ -37,8 +37,8 @@ export class Rental {
   @Column()
   clothesId!: string;
 
-  @Column()
-  paymentQR!: string;
+  @Column({ nullable: true })
+  paymentQR: string;
 
   @Column({ nullable: true })
   bankTransactionId?: string;
@@ -57,6 +57,12 @@ export class Rental {
 
   @Column({ nullable: true })
   pendingExpireAt: Date;
+
+  @Column({ nullable: true })
+  paymentUrl: string;
+
+  @Column({ nullable: true })
+  expireAt: Date;
 
   @ManyToOne(() => Clothes)
   @JoinColumn({ name: 'clothesId' })

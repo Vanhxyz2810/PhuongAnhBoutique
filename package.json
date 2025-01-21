@@ -7,5 +7,9 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@payos/node": "^1.0.10",
+    "@payos/payos-checkout": "^1.0.8"
   }
 }

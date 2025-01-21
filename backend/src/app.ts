@@ -15,6 +15,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/clothes', clothesRouter);
 app.use('/api/rentals', rentalRouter);
+app.use('/api/uploads', express.static('uploads'));
 
 // Connect to database
 connectDB();

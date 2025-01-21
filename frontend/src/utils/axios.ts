@@ -1,11 +1,14 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
   }
 });
+
+console.log('Current API URL:', import.meta.env.VITE_API_URL);
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(
@@ -35,7 +38,12 @@ axiosInstance.interceptors.response.use(
     console.error('Axios Response Error:', {
       status: error.response?.status,
       data: error.response?.data,
-      config: error.config
+      message: error.message,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      }
     });
     if (error.response?.status === 401) {
       console.log('Token validation failed');
