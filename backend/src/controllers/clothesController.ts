@@ -11,12 +11,18 @@ const clothesRepository = AppDataSource.getRepository(Clothes);
 export default {
   getAll: (async (_req, res) => {
     try {
+      console.log('Fetching all clothes...');
       const clothes = await clothesRepository.find({
         order: { createdAt: 'DESC' }
       });
+      console.log('Found clothes:', clothes);
       res.json(clothes);
     } catch (error) {
-      res.status(500).json({ message: 'Lỗi server' });
+      console.error('Error in getAll:', error);
+      res.status(500).json({ 
+        message: 'Lỗi server',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }) as RequestHandler,
 

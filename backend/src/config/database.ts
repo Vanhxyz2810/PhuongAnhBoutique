@@ -8,6 +8,12 @@ import path from 'path';
 const dbPath = path.join(__dirname, '../../database.sqlite');
 console.log('Database path:', dbPath);
 
+console.log('Database config:', {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME
+});
+
 export const AppDataSource = new DataSource({
   type: "sqlite",
   database: dbPath,
@@ -24,6 +30,6 @@ export const connectDB = async () => {
     console.log("Database connected successfully");
   } catch (error) {
     console.error("Error connecting to database:", error);
-    process.exit(1);
+    throw error;
   }
 }; 

@@ -4,6 +4,8 @@ import authRouter from './routes/auth';
 import clothesRouter from './routes/clothes';
 import rentalRouter from './routes/rental';
 import { connectDB } from './config/database';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 
@@ -15,7 +17,14 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/clothes', clothesRouter);
 app.use('/api/rentals', rentalRouter);
-app.use('/api/uploads', express.static('uploads'));
+
+// Tạo thư mục uploads nếu chưa tồn tại
+const uploadsDir = path.join(__dirname, '../uploads/clothes');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Connect to database
 connectDB();
