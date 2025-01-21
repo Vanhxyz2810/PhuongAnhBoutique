@@ -9,6 +9,9 @@
       }
     }
   ],
+  "env": {
+    "VITE_API_URL": "https://phuonganhboutique-production.up.railway.app/api"
+  },
   "routes": [
     {
       "src": "/(.*)",
