@@ -6,6 +6,11 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+console.log('Cloudinary config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY
+});
+
 export const uploadToCloudinary = async (file: Express.Multer.File) => {
   try {
     const result = await cloudinary.uploader.upload(file.path);
