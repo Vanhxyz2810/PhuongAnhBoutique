@@ -361,7 +361,7 @@ const ProductDetail = () => {
               }}
             >
               <img
-                src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${product.images[0]}`}
+                src={product.images[selectedImage]}
                 alt={product.name}
                 style={{
                   width: '100%',
@@ -396,12 +396,12 @@ const ProductDetail = () => {
                   }}
                 >
                   <img
-                    src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${image}`}
+                    src={image}
                     alt={`${product.name} thumbnail ${index + 1}`}
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'contain',
+                      objectFit: 'cover',
                       display: 'block'
                     }}
                   />
