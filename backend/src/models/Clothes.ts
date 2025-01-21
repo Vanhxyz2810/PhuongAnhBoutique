@@ -32,10 +32,10 @@ export class Clothes {
   })
   status!: string;
 
-  @CreateDateColumn({ type: 'datetime' })
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: 'datetime' })
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt!: Date;
 
   @OneToMany(() => Rental, rental => rental.clothes)

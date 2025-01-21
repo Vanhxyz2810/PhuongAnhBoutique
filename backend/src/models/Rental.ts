@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn, UpdateDateColumn } from 'typeorm';
 import { Clothes } from './Clothes';
 import { User } from './User';
 
@@ -19,11 +19,11 @@ export class Rental {
   @Column()
   identityCard!: string;
 
-  @Column()
-  rentDate!: Date;
+  @Column({ type: 'timestamp' })
+  rentDate: Date;
 
-  @Column()
-  returnDate!: Date;
+  @Column({ type: 'timestamp' })
+  returnDate: Date;
 
   @Column()
   totalAmount!: number;
@@ -43,8 +43,8 @@ export class Rental {
   @Column({ nullable: true })
   bankTransactionId?: string;
 
-  @CreateDateColumn()
-  createdAt!: Date;
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt: Date;
 
   @Column({ nullable: true })
   approvedAt?: Date;
@@ -63,6 +63,9 @@ export class Rental {
 
   @Column({ nullable: true })
   expireAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt: Date;
 
   @ManyToOne(() => Clothes)
   @JoinColumn({ name: 'clothesId' })
