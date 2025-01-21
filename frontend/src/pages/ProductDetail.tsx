@@ -131,6 +131,14 @@ const ProductDetail = () => {
     qrCodeUrl?: string;
   }>({});
 
+  const calculateTotal = useCallback(() => {
+    if (!formData.rentDate || !formData.returnDate || !product) {
+      return 0;
+    }
+    const days = Math.ceil((formData.returnDate.getTime() - formData.rentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return days * product.price;
+  }, [formData.rentDate, formData.returnDate, product]);
+
   const handleRentClick = useCallback(() => {
     // Delay mở form để tránh blocking UI
     requestAnimationFrame(() => {
@@ -172,15 +180,21 @@ const ProductDetail = () => {
     let intervalId: number;
     
     if (showPayment && paymentInfo.orderCode) {
-      // Poll mỗi 5 giây
       intervalId = setInterval(async () => {
         try {
-          const response = await axiosInstance.get(`/rentals/payment-status/${paymentInfo.orderCode}`);
-          console.log('Payment status:', response.data.status);
+          const response = await axiosInstance.get(`/rentals/check-payment/${paymentInfo.orderCode}`);
+          console.log('Payment status:', response.data);
           
-          if (response.data.status === 'approved') {
-            // Redirect to success page
-            navigate('/success-payment');
+          if (response.data.status === 'PAID') {
+            clearInterval(intervalId);
+            setShowPayment(false);
+            // Redirect về trang success
+            navigate('/rental-success', { 
+              state: { 
+                orderCode: paymentInfo.orderCode,
+                amount: calculateTotal()
+              } 
+            });
           }
         } catch (error) {
           console.error('Error checking payment status:', error);
@@ -193,7 +207,7 @@ const ProductDetail = () => {
         clearInterval(intervalId);
       }
     };
-  }, [showPayment, paymentInfo.orderCode, navigate]);
+  }, [showPayment, paymentInfo.orderCode, navigate, calculateTotal]);
 
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -221,14 +235,6 @@ const ProductDetail = () => {
         [type]: file
       }));
     }
-  };
-
-  const calculateTotal = () => {
-    if (!formData.rentDate || !formData.returnDate || !product) {
-      return 0;
-    }
-    const days = Math.ceil((formData.returnDate.getTime() - formData.rentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return days * product.price;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

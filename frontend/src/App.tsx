@@ -16,6 +16,7 @@ import MyOrders from './pages/MyOrders';
 import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RentalSuccess from './pages/RentalSuccess';
 
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
@@ -74,6 +75,7 @@ function App() {
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/rental-success" element={<RentalSuccess />} />
             </Routes>
           </Layout>
         </Router>
