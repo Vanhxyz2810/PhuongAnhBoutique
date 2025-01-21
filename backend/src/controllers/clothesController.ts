@@ -37,13 +37,12 @@ export default {
 
       const { name, ownerName, rentalPrice, description } = req.body;
       
-      // Chỉ lưu tên file, không lưu đường dẫn
       const clothes = clothesRepository.create({
         name,
         ownerName,
         rentalPrice: Number(rentalPrice),
         description,
-        image: req.file.filename,  // Chỉ lưu tên file
+        image: req.file.filename,  // Đã đúng, chỉ lưu tên file
         status: 'available'
       });
 

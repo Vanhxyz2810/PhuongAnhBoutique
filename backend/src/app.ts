@@ -18,13 +18,17 @@ app.use('/api/auth', authRouter);
 app.use('/api/clothes', clothesRouter);
 app.use('/api/rentals', rentalRouter);
 
+const uploadsPath = path.join(__dirname, '../uploads');
+console.log('Uploads directory:', uploadsPath);
+
 // Tạo thư mục uploads nếu chưa tồn tại
 const uploadsDir = path.join(__dirname, '../uploads/clothes');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadsPath));
+console.log('Serving static files from:', uploadsPath);
 
 // Connect to database
 connectDB();
