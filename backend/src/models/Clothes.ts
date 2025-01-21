@@ -40,4 +40,9 @@ export class Clothes {
 
   @OneToMany(() => Rental, rental => rental.clothes)
   rentals!: Rental[];
+
+  @Column({ type: 'varchar' })
+  get imageUrl(): string {
+    return `/api/uploads/clothes/${this.image}`;
+  }
 } 

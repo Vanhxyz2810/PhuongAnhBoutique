@@ -245,8 +245,7 @@ const Clothes = () => {
                       width: '60px',
                       height: '60px',
                       objectFit: 'cover',
-                      borderRadius: '8px',
-                      margin: '0 auto'
+                      borderRadius: '8px'
                     }}
                   />
                 </TableCell>

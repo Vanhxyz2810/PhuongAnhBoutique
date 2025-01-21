@@ -20,24 +20,24 @@ export default {
     }
   }) as RequestHandler,
 
-  create: (async (req: MulterRequest, res) => {
+  create: (async (req: MulterRequest, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: 'Vui lòng upload ảnh' });
       }
-
+      
       console.log('Request body:', req.body);
       console.log('File:', req.file);
 
       const { name, ownerName, rentalPrice, description } = req.body;
-      const image = req.file ? `/uploads/clothes/${req.file.filename}` : '';
-
+      
+      // Chỉ lưu tên file, không lưu đường dẫn
       const clothes = clothesRepository.create({
         name,
         ownerName,
         rentalPrice: Number(rentalPrice),
         description,
-        image,
+        image: req.file.filename,  // Chỉ lưu tên file
         status: 'available'
       });
 

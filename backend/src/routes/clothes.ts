@@ -8,6 +8,8 @@ const router = express.Router();
 // Routes
 router.get('/', clothesController.getAll);
 router.post('/', uploadClothes.single('image'), (req: MulterRequest, res: Response, next: NextFunction) => {
+  console.log('File path:', req.file?.path);
+  console.log('File saved as:', req.file?.filename);
   clothesController.create(req, res, next);
 });
 router.put('/:id', uploadClothes.single('image'), (req: MulterRequest, res: Response, next: NextFunction) => {
