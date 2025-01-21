@@ -80,7 +80,7 @@ const MyOrders = () => {
               <CardMedia
                 component="img"
                 sx={{ width: 140, height: 140, objectFit: 'cover' }}
-                image={`https://phuonganhboutique-production.up.railway.app${order.clothes.images[0]}`}
+                image={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${order.clothes.images[0].split('/').pop()}`}
                 alt={order.clothes.name}
               />
               <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, ml: 2 }}>

@@ -26,7 +26,7 @@ const RentalSuccess = () => {
           Mã đơn hàng: {orderCode}
         </Typography>
         <Typography variant="body1" gutterBottom>
-          Số tiền: {Number(amount)?.toLocaleString()}đ
+          Số tiền: {amount ? new Intl.NumberFormat('vi-VN').format(Number(amount)) : 0}đ
         </Typography>
         <Box sx={{ mt: 4 }}>
           <Button 
@@ -40,7 +40,7 @@ const RentalSuccess = () => {
           </Button>
           <Button 
             component={Link} 
-            to="/rentals" 
+            to="/my-orders" 
             variant="outlined"
           >
             Xem đơn hàng

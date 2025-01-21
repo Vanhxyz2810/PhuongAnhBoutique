@@ -134,7 +134,7 @@ const Dashboard = () => {
                 }}>
                   <CardMedia
                     component="img"
-                    image={`https://phuonganhboutique-production.up.railway.app/uploads/clothes/${item.image.split('/').pop()}`}
+                    image={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${item.image.split('/').pop()}`}
                     alt={item.name}
                     sx={{ 
                       position: 'absolute',
@@ -142,8 +142,8 @@ const Dashboard = () => {
                       left: 0,
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover'
-                    }}
+                      objectFit: 'cover',
+                      }}
                   />
                 </Box>
                 

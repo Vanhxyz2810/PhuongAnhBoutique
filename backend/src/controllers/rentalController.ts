@@ -102,7 +102,7 @@ export default {
         amount: Number(totalAmount),
         description: `Thuê đồ - ${orderCode}`,
         cancelUrl: `${process.env.FRONTEND_URL}/cancel-payment`,
-        returnUrl: `${process.env.FRONTEND_URL}/success-payment`,
+        returnUrl: `${process.env.FRONTEND_URL}/rental-success`,
         items: [{
           name: clothes.name,
           quantity: 1,
