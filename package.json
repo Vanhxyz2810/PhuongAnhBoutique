@@ -11,6 +11,7 @@
   "dependencies": {
     "@payos/node": "^1.0.10",
     "@payos/payos-checkout": "^1.0.8",
+    "cloudinary": "^2.5.1",
     "pg": "^8.13.1"
   }
 }

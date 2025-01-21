@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { MulterRequest } from '../config/multer';
 import { Rental } from '../models/Rental';
+import { uploadToCloudinary } from '../middleware/uploadToCloud';
 
 const clothesRepository = AppDataSource.getRepository(Clothes);
 
@@ -28,42 +29,22 @@ export default {
 
   create: (async (req: MulterRequest, res: Response) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'Vui lòng upload ảnh' });
+      const clothesData = req.body;
+      const file = req.file;
+
+      if (file) {
+        // Upload to Cloudinary instead of local
+        const imageUrl = await uploadToCloudinary(file);
+        clothesData.image = imageUrl;
       }
-      
-      console.log('Request body:', req.body);
-      console.log('File:', req.file);
 
-      const { name, ownerName, rentalPrice, description } = req.body;
-      
-      const clothes = clothesRepository.create({
-        name,
-        ownerName,
-        rentalPrice: Number(rentalPrice),
-        description,
-        image: req.file.filename,  // Đã đúng, chỉ lưu tên file
-        status: 'available'
-      });
-
+      const clothes = clothesRepository.create(clothesData);
       await clothesRepository.save(clothes);
-      console.log('Saved clothes:', clothes);
 
       res.status(201).json(clothes);
-
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Error creating clothes:', error);
-      if (req.file) {
-        const filePath = req.file.path;
-        console.log('Deleting file:', filePath);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-      res.status(500).json({ 
-        message: 'Lỗi khi lưu dữ liệu',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      res.status(500).json({ message: 'Lỗi server' });
     }
   }) as RequestHandler,
 
