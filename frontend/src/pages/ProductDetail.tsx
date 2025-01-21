@@ -62,6 +62,7 @@ interface Product {
   sizes: string[];
   description: string;
   sku: string;
+  status: string;
 }
 
 interface ApiError {
@@ -155,25 +156,31 @@ const ProductDetail = () => {
       }
 
       const response = await axiosInstance.get(`/clothes/${id}`);
+      console.log('Product data:', response.data); // Thêm log để debug
       setProduct(response.data);
     } catch (error: unknown) {
-      console.error('=== RENTAL ERROR ===');
-      console.error('Error:', error);
+      console.error('Error fetching product:', error);
       const apiError = error as ApiError;
       if (apiError.response) {
         console.error('Response:', apiError.response.data);
       }
-      alert(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê');
+      setError('Có lỗi xảy ra khi tải thông tin sản phẩm');
     } finally {
       setLoading(false);
     }
   }, [id]);
 
+  // Thêm interval để tự động refresh status
   useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
-  }, [id, fetchProduct]);
+    // Fetch lần đầu
+    fetchProduct();
+
+    // Tạo interval để fetch mỗi 30 giây
+    const intervalId = setInterval(fetchProduct, 30000);
+
+    // Cleanup
+    return () => clearInterval(intervalId);
+  }, [fetchProduct]);
 
   // Thêm useEffect để poll payment status
   useEffect(() => {
@@ -280,6 +287,13 @@ const ProductDetail = () => {
       console.log('Response:', response.data);
       
       if (response.data.paymentUrl) {
+        // Thêm log để debug
+        console.log('Saving amount to localStorage:', {
+          key: `rental_amount_${response.data.orderCode}`,
+          amount: calculateTotal()
+        });
+        
+        localStorage.setItem(`rental_amount_${response.data.orderCode}`, calculateTotal().toString());
         window.location.href = response.data.paymentUrl;
       } else if (response.data.paymentQR) {
         setPaymentInfo({
@@ -449,22 +463,42 @@ const ProductDetail = () => {
             </Box>
 
             {/* Thay thế 2 nút bằng 1 nút Thuê Ngay */}
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{
-                bgcolor: theme.colors.sale,
-                '&:hover': {
-                  bgcolor: '#FF0080'
-                },
-                py: 1.5,
-                mb: 4,
-                fontSize: '1.1rem'
-              }}
-              onClick={handleRentClick}
-            >
-              Thuê Ngay
-            </Button>
+            {product.status === 'available' ? (
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{
+                  bgcolor: theme.colors.sale,
+                  '&:hover': {
+                    bgcolor: '#FF0080'
+                  },
+                  py: 1.5,
+                  mb: 4,
+                  fontSize: '1.1rem'
+                }}
+                onClick={handleRentClick}
+              >
+                Thuê Ngay
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                variant="contained"
+                disabled
+                sx={{
+                  py: 1.5,
+                  mb: 4,
+                  fontSize: '1.1rem',
+                  bgcolor: 'rgba(0, 0, 0, 0.12)',
+                  color: 'rgba(0, 0, 0, 0.26)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.12)'
+                  }
+                }}
+              >
+                Đã Được Thuê
+              </Button>
+            )}
 
             <Divider sx={{ mb: 3 }} />
 
@@ -482,7 +516,7 @@ const ProductDetail = () => {
         {/* Phần chính sách và liên hệ */}
         <Grid container spacing={4}>
           {/* Chính sách đổi trả */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ textAlign: 'left' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Chính sách đổi trả hàng</Typography>
             <Box component="ul" sx={{ pl: 2 }}>
               <Typography component="li">Không hỗ trợ kiểm tra hàng</Typography>
@@ -497,7 +531,7 @@ const ProductDetail = () => {
           </Grid>
 
           {/* Liên hệ */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ textAlign: 'right' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Liên hệ chúng tôi</Typography>
             <Box sx={{ pl: 2 }}>
               <Typography>

@@ -26,6 +26,7 @@ import OrderStatus from '../components/OrderStatus';
 import MoneyIcon from '@mui/icons-material/MonetizationOn';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Delete } from '@mui/icons-material';
 
 interface Rental {
   id: number;
@@ -106,6 +107,20 @@ const Rentals = () => {
   // Hàm mở/đóng modal xem ảnh
   const handleOpenImage = (imageUrl: string) => setSelectedImage(imageUrl);
   const handleCloseImage = () => setSelectedImage(null);
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Bạn có chắc muốn xóa đơn thuê này?')) {
+      try {
+        await axiosInstance.delete(`/rentals/${id}`);
+        // Refresh lại danh sách
+        fetchRentals();
+        alert('Đã xóa đơn thuê thành công');
+      } catch (error) {
+        console.error('Error deleting rental:', error);
+        alert('Lỗi khi xóa đơn thuê');
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -304,6 +319,14 @@ const Rentals = () => {
                         ))}
                       </Select>
                     </FormControl>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton 
+                      onClick={() => handleDelete(rental.id)}
+                      disabled={rental.status === 'approved'}
+                    >
+                      <Delete />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}

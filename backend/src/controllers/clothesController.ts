@@ -144,22 +144,24 @@ export default {
 
   getClothesById: (async (req: Request, res: Response) => {
     try {
-      const id = req.params.id;
-      console.log('Getting product with ID:', id);
-
-      if (!id) {
-        return res.status(400).json({ message: 'ID không hợp lệ' });
-      }
-
-      const clothes = await clothesRepository.findOne({
-        where: { id }
-      });
+      const { id } = req.params;
       
+      const clothes = await clothesRepository.findOne({
+        where: { id },
+        relations: ['rentals']
+      });
+
       if (!clothes) {
         return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
       }
 
-      res.json({
+      // Kiểm tra xem có đơn thuê nào đang active không
+      const hasActiveRental = clothes.rentals?.some(
+        rental => rental.status === 'pending' || rental.status === 'approved'
+      );
+
+      // Format response theo interface Product
+      const response = {
         id: clothes.id,
         name: clothes.name,
         price: clothes.rentalPrice,
@@ -167,9 +169,11 @@ export default {
         images: clothes.image ? [clothes.image] : [],
         sizes: ['S', 'M', 'L'],
         description: clothes.description || 'Chưa có mô tả',
-        sku: `SP${clothes.id}`
-      });
+        sku: `SP${clothes.id}`,
+        status: hasActiveRental ? 'rented' : 'available'
+      };
 
+      res.json(response);
     } catch (error) {
       console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });

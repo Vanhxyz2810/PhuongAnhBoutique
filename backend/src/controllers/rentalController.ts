@@ -102,7 +102,7 @@ export default {
         amount: Number(totalAmount),
         description: `Thuê đồ - ${orderCode}`,
         cancelUrl: `${process.env.FRONTEND_URL}/cancel-payment`,
-        returnUrl: `${process.env.FRONTEND_URL}/rental-success`,
+        returnUrl: `${process.env.FRONTEND_URL}/success-payment`,
         items: [{
           name: clothes.name,
           quantity: 1,
@@ -441,10 +441,15 @@ export default {
       const { orderCode } = req.params;
       const { status } = req.body;
 
+      console.log('=== UPDATE PAYMENT ===');
+      console.log('orderCode:', orderCode);
+      console.log('status:', status);
+
       const rental = await rentalRepository.findOne({
-        where: { orderCode },
-        relations: ['clothes']
+        where: { orderCode }
       });
+
+      console.log('Found rental:', rental);
 
       if (!rental) {
         return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
@@ -460,6 +465,101 @@ export default {
       res.json({ message: 'Cập nhật trạng thái thành công' });
     } catch (error) {
       console.error('Error updating payment:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  getRentalByOrderCode: async (req: Request, res: Response) => {
+    try {
+      const { orderCode } = req.params;
+      console.log('=== GET RENTAL BY ORDER CODE ===');
+      console.log('orderCode:', orderCode);
+
+      const rental = await rentalRepository.findOne({
+        where: { orderCode },
+        relations: ['clothes']
+      });
+
+      console.log('Found rental:', rental);
+
+      if (!rental) {
+        console.log('Rental not found');
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      // Trả về dữ liệu cần thiết
+      const response = {
+        orderCode: rental.orderCode,
+        amount: rental.totalAmount,
+        status: rental.status,
+        clothesName: rental.clothes?.name
+      };
+      console.log('Sending response:', response);
+
+      res.json(response);
+    } catch (error) {
+      console.error('Error getting rental:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  updatePaymentStatus: async (req: Request, res: Response) => {
+    try {
+      const { orderCode } = req.params;
+      const { status } = req.body;
+
+      const rental = await rentalRepository.findOne({
+        where: { orderCode },
+        relations: ['clothes']
+      });
+
+      if (!rental) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn thuê' });
+      }
+
+      // Cập nhật trạng thái đơn thuê
+      rental.status = status; // 'approved'
+      await rentalRepository.save(rental);
+
+      // Cập nhật trạng thái quần áo thành rented
+      if (rental.clothes) {
+        rental.clothes.status = 'rented';
+        await clothesRepository.save(rental.clothes);
+      }
+
+      res.json({ message: 'Cập nhật trạng thái thành công' });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  deleteRental: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const rental = await rentalRepository.findOne({
+        where: { id: Number(id) },
+        relations: ['clothes']
+      });
+
+      if (!rental) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn thuê' });
+      }
+
+      // Nếu đơn đang được thuê thì không cho xóa
+      if (rental.status === 'approved') {
+        return res.status(400).json({ 
+          message: 'Không thể xóa đơn đang được thuê' 
+        });
+      }
+
+      // Xóa đơn thuê
+      await rentalRepository.remove(rental);
+
+      res.json({ message: 'Đã xóa đơn thuê thành công' });
+    } catch (error) {
+      console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }

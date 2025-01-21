@@ -9,20 +9,32 @@ const SuccessPayment = () => {
   useEffect(() => {
     const handlePaymentSuccess = async () => {
       try {
-        const orderCode = searchParams.get('orderCode');
+        const orderCode = `PA${searchParams.get('orderCode')}`;
         const status = searchParams.get('status');
+        const code = searchParams.get('code');
         
-        if (status === 'PAID') {
-          // Gọi API để cập nhật trạng thái đơn hàng
-          await axiosInstance.post(`/rentals/update-payment/${orderCode}`, {
-            status: 'PAID'
-          });
-          
-          // Redirect to rental success page
+        console.log('=== PAYMENT SUCCESS PARAMS ===', {
+          orderCode,
+          status,
+          code
+        });
+
+        if ((status === 'PAID' || code === '00') && orderCode) {
+          try {
+            await axiosInstance.post(`/rentals/updatePayment/${orderCode}`, {
+              status: 'approved'
+            });
+          } catch (error) {
+            console.error('Error updating payment status:', error);
+          }
+
           navigate(`/rental-success?orderCode=${orderCode}`);
+        } else {
+          console.log('Invalid status or orderCode:', { status, code, orderCode });
+          navigate('/');
         }
       } catch (error) {
-        console.error('Error handling payment success:', error);
+        console.error('=== PAYMENT SUCCESS ERROR ===', error);
         navigate('/');
       }
     };

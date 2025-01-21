@@ -15,7 +15,7 @@ import {
   ToggleButton
 } from '@mui/material';
 import { Bar } from 'react-chartjs-2';
-import axios from 'axios';
+import axiosInstance from '../utils/axios';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -33,6 +33,7 @@ import {
 import { startOfWeek, startOfMonth } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import styled from '@emotion/styled';
+import { AxiosError } from 'axios';
 
 // import { styled as muiStyled } from '@mui/material/styles';
 
@@ -52,23 +53,34 @@ interface RevenueStats {
   monthly: number;
 }
 
-interface Rental {
-  id: number;
-  clothesIds: string[];
-  totalAmount: number;
-  isPaid: boolean;
-  createdAt: string;
-}
-
 interface Clothes {
   id: string;
   name: string;
+  ownerName: string;
+  rentalPrice: number;
+  description: string;
+  image: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ClothesStats {
   name: string;
   count: number;
   revenue: number;
+}
+
+interface Rental {
+  id: number;
+  orderCode: string;
+  customerName: string;
+  phone: string;
+  totalAmount: number;
+  status: string;
+  clothes: Clothes;
+  rentDate: string;
+  returnDate: string;
 }
 
 const CardContent = styled.div`
@@ -114,9 +126,17 @@ const Revenue = () => {
     };
 
     rentalsData.forEach(rental => {
-      if (!rental.isPaid) return;
+      if (rental.status !== 'approved') return;
       
-      const rentalDate = new Date(rental.createdAt);
+      const rentalDate = new Date(rental.rentDate);
+      console.log('Processing rental:', {
+        date: rentalDate,
+        amount: rental.totalAmount,
+        isToday: rentalDate >= startOfDay,
+        isThisWeek: rentalDate >= startOfWeekDate,
+        isThisMonth: rentalDate >= startOfMonthDate
+      });
+
       if (rentalDate >= startOfDay) {
         stats.daily += rental.totalAmount;
       }
@@ -128,6 +148,7 @@ const Revenue = () => {
       }
     });
 
+    console.log('Final stats:', stats);
     setRevenueStats(stats);
   };
 
@@ -142,13 +163,12 @@ const Revenue = () => {
     }, {});
 
     rentalsData.forEach(rental => {
-      if (!rental.isPaid) return;
-      rental.clothesIds.forEach((id: string) => {
-        if (clothesStats[id]) {
-          clothesStats[id].count += 1;
-          clothesStats[id].revenue += rental.totalAmount;
-        }
-      });
+      if (rental.status !== 'approved') return;
+      
+      if (rental.clothes && clothesStats[rental.clothes.id]) {
+        clothesStats[rental.clothes.id].count += 1;
+        clothesStats[rental.clothes.id].revenue += rental.totalAmount;
+      }
     });
 
     const sortedClothes = Object.entries(clothesStats)
@@ -167,46 +187,70 @@ const Revenue = () => {
     const startOfWeekDate = startOfWeek(now, { locale: vi });
     const startOfMonthDate = startOfMonth(now);
     
-    // Reset data arrays
     const weekData = Array(7).fill(0);
     const monthData = Array(31).fill(0);
 
     rentalsData.forEach(rental => {
-      if (!rental.isPaid) return;
+      if (rental.status !== 'approved') return;
       
-      const rentalDate = new Date(rental.createdAt);
+      const rentalDate = new Date(rental.rentDate);
       
-      // Tính doanh thu theo tuần
       if (rentalDate >= startOfWeekDate) {
-        const dayOfWeek = rentalDate.getDay(); // 0 = CN, 1 = T2, ...
-        const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Chuyển về 0 = T2, ..., 6 = CN
+        const dayOfWeek = rentalDate.getDay();
+        const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         weekData[index] += rental.totalAmount;
       }
 
-      // Tính doanh thu theo tháng
       if (rentalDate >= startOfMonthDate) {
-        const dayOfMonth = rentalDate.getDate() - 1; // Index từ 0
+        const dayOfMonth = rentalDate.getDate() - 1;
         monthData[dayOfMonth] += rental.totalAmount;
       }
     });
 
+    console.log('Chart data:', { weekData, monthData });
     setWeeklyData(weekData);
     setMonthlyData(monthData);
   };
 
   const fetchData = useCallback(async () => {
     try {
+      // Log để kiểm tra request
+      console.log('Fetching data...');
+
       const [rentalsRes, clothesRes] = await Promise.all([
-        axios.get<Rental[]>('https://phuonganhboutique-production.up.railway.app/api/rentals'),
-        axios.get<Clothes[]>('https://phuonganhboutique-production.up.railway.app/api/clothes')
+        axiosInstance.get<Rental[]>('/rentals'),
+        axiosInstance.get<Clothes[]>('/clothes')
       ]);
 
+      // Log response để kiểm tra data
+      console.log('Rentals data:', rentalsRes.data);
+      console.log('Clothes data:', clothesRes.data);
+
       const rentalsData = rentalsRes.data;
+      
+      // Kiểm tra cấu trúc của rental data
+      rentalsData.forEach(rental => {
+        console.log('Rental:', {
+          id: rental.id,
+          orderCode: rental.orderCode,
+          customerName: rental.customerName,
+          phone: rental.phone,
+          totalAmount: rental.totalAmount,
+          status: rental.status,
+          rentDate: rental.rentDate,
+          returnDate: rental.returnDate
+        });
+      });
+
       calculateRevenue(rentalsData);
       calculateTopClothes(rentalsData, clothesRes.data);
       calculateChartData(rentalsData);
     } catch (error) {
+      // Log chi tiết lỗi
       console.error('Lỗi khi lấy dữ liệu:', error);
+      if (error instanceof AxiosError && error.response) {
+        console.error('Error response:', error.response.data);
+      }
     }
   }, []);
 

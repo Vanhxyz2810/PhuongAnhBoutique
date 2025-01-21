@@ -10,11 +10,15 @@ const router = express.Router();
 router.post('/', auth as RequestHandler, uploadIdentity.single('identityCard'), rentalController.create);
 router.get('/my-rentals', auth as RequestHandler, rentalController.getMyRentals as RequestHandler);
 
+// Public routes - đặt trước các routes khác
+router.get('/by-order-code/:orderCode', rentalController.getRentalByOrderCode);
+router.get('/check-payment/:orderCode', rentalController.checkPaymentStatus);
+router.post('/webhook', rentalController.handlePaymentWebhook);
+router.post('/updatePayment/:orderCode', rentalController.updatePayment); 
+
 // Routes cho admin
 router.get('/', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.getAll as RequestHandler);
 router.put('/:id/status', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.updateStatus as RequestHandler);
-
-router.post('/webhook', rentalController.handlePaymentWebhook);
-router.post('/update-payment/:orderCode', rentalController.updatePayment);
+router.delete('/:id', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.deleteRental as RequestHandler);
 
 export default router; 

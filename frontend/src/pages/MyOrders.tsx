@@ -8,12 +8,16 @@ import {
   Card,
   CardContent,
   CardMedia,
-  Divider
+  Divider,
+  Button,
+
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import axiosInstance from '../utils/axios';
+import { ShoppingBagOutlined } from '@mui/icons-material';
 import OrderStatus from '../components/OrderStatus';
+import { theme } from '../theme';
 
 interface Rental {
   id: number;
@@ -69,7 +73,7 @@ const MyOrders = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 'bold', color: theme.palette.primary.main, textAlign: 'left' }}>
         Đơn Thuê Của Tôi
       </Typography>
 
@@ -125,7 +129,30 @@ const MyOrders = () => {
         {orders.length === 0 && (
           <Grid item xs={12}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography>Bạn chưa có đơn thuê nào</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <ShoppingBagOutlined sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.5 }} />
+                <Typography variant="h6" color="text.secondary">
+                  Bạn chưa có đơn thuê nào
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Hãy thuê ngay những bộ trang phục đẹp của chúng tôi!
+                </Typography>
+                <Button
+                  href="/"
+                  variant="contained"
+                  sx={{
+                    bgcolor: theme.palette.primary.main,
+                    '&:hover': {
+                      bgcolor: theme.palette.primary.light
+                    },
+                    px: 3,
+                    py: 1,
+                    mt: 1
+                  }}
+                >
+                  Xem trang phục
+                </Button>
+              </Box>
             </Paper>
           </Grid>
         )}

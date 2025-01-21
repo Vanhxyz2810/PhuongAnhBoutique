@@ -3,10 +3,6 @@ import { Rental } from "../models/Rental";
 import { Clothes } from "../models/Clothes";
 import { User } from '../models/User';
 import { Session } from '../models/Session';
-import path from 'path';
-
-const dbPath = path.join(__dirname, '../../database.sqlite');
-console.log('Database path:', dbPath);
 
 console.log('Database config:', {
   host: process.env.DB_HOST,
@@ -15,8 +11,11 @@ console.log('Database config:', {
 });
 
 export const AppDataSource = new DataSource({
-  type: "sqlite",
-  database: dbPath,
+  type: "postgres",
+  url: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false
+  } : false,
   synchronize: true,
   logging: true,
   entities: [Clothes, Rental, User, Session],

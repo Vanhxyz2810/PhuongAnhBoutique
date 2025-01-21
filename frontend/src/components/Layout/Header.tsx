@@ -26,6 +26,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 
+const theme = {
+  colors: {
+    primary: '#FF90BC'
+  }
+};
+
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -91,23 +97,29 @@ const Header = () => {
               <Menu />
             </IconButton>
 
-            {/* Logo */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              flexShrink: 0
-            }}>
+            {/* Logo và tên thương hiệu */}
+            <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+              <img 
+                src="/images/pa_img.png"
+                alt="PA Boutique Logo"
+                style={{ 
+                  height: 47,
+                  width: 47,
+                  borderRadius: '50%',
+                  marginRight: '8px'  // Thêm khoảng cách giữa logo và text
+                }}
+              />
               <Typography
-                variant="h5"
+                variant="h6"
+                noWrap
                 component={Link}
                 to="/"
                 sx={{
-                  textDecoration: 'none',
-                  color: '#FF90BC',
+                  // fontFamily: 'monospace',
                   fontWeight: 700,
-                  letterSpacing: 1,
-                  fontSize: { xs: '1.2rem', sm: '1.5rem' },
-                  display: { xs: 'none', sm: 'block' }
+                  letterSpacing: '.3rem',
+                  color: theme.colors.primary,
+                  textDecoration: 'none',
                 }}
               >
                 PA BOUTIQUE
