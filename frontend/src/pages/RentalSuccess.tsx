@@ -1,10 +1,11 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Container, Box, Typography, Button } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 
 const RentalSuccess = () => {
-  const location = useLocation();
-  const { orderCode, amount } = location.state || {};
+  const [searchParams] = useSearchParams();
+  const orderCode = searchParams.get('orderCode');
+  const amount = searchParams.get('amount');
 
   return (
     <Container maxWidth="sm">
@@ -25,7 +26,7 @@ const RentalSuccess = () => {
           Mã đơn hàng: {orderCode}
         </Typography>
         <Typography variant="body1" gutterBottom>
-          Số tiền: {amount?.toLocaleString()}đ
+          Số tiền: {Number(amount)?.toLocaleString()}đ
         </Typography>
         <Box sx={{ mt: 4 }}>
           <Button 

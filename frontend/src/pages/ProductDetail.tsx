@@ -185,16 +185,13 @@ const ProductDetail = () => {
           const response = await axiosInstance.get(`/rentals/check-payment/${paymentInfo.orderCode}`);
           console.log('Payment status:', response.data);
           
-          if (response.data.status === 'PAID') {
+          // Kiểm tra cả hai trường hợp: PAID và 00 (theo docs PayOS)
+          if (response.data.status === 'PAID' || response.data.code === '00') {
             clearInterval(intervalId);
             setShowPayment(false);
-            // Redirect về trang success
-            navigate('/rental-success', { 
-              state: { 
-                orderCode: paymentInfo.orderCode,
-                amount: calculateTotal()
-              } 
-            });
+            
+            // Thay vì navigate, sử dụng window.location.href
+            window.location.href = `${window.location.origin}/rental-success?orderCode=${paymentInfo.orderCode}&amount=${calculateTotal()}`;
           }
         } catch (error) {
           console.error('Error checking payment status:', error);
@@ -207,7 +204,7 @@ const ProductDetail = () => {
         clearInterval(intervalId);
       }
     };
-  }, [showPayment, paymentInfo.orderCode, navigate, calculateTotal]);
+  }, [showPayment, paymentInfo.orderCode, calculateTotal]);
 
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
