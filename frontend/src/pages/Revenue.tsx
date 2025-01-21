@@ -489,7 +489,7 @@ const Revenue = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Tên Quần Áoo</TableCell>
+              <TableCell>Tên Quần Áo</TableCell>
               <TableCell align="center">Số Lần Thuê</TableCell>
               <TableCell align="right">Doanh Thu</TableCell>
             </TableRow>
