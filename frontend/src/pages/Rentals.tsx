@@ -269,7 +269,7 @@ const Rentals = () => {
                   </TableCell>
                   <TableCell>
                     {rental.identityCard && (
-                      <Tooltip title="Xem CCCD">
+                      <Tooltip title="Xem CCCD1">
                         <IconButton 
                           size="small"
                           onClick={() => handleOpenImage(`https://phuonganhboutique-production.up.railway.app${rental.identityCard}`)}

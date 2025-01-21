@@ -239,7 +239,7 @@ const Clothes = () => {
                 <TableCell align="center">{item.rentalPrice.toLocaleString()}đ</TableCell>
                 <TableCell align="center">
                   <img 
-                    src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${item.image.split('/').pop()}`}
+                    src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${item.image}`}
                     alt={item.name}
                     style={{ 
                       width: '60px',
