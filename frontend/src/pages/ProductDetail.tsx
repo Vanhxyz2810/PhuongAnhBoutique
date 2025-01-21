@@ -62,6 +62,7 @@ interface Product {
   sizes: string[];
   description: string;
   sku: string;
+  image: string;
 }
 
 interface ApiError {
@@ -333,7 +334,7 @@ const ProductDetail = () => {
               }}
             >
               <img
-                src={`https://phuonganhboutique-production.up.railway.app${product.images[selectedImage]}`}
+                src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${product.image}`}
                 alt={product.name}
                 style={{
                   width: '100%',
@@ -368,7 +369,7 @@ const ProductDetail = () => {
                   }}
                 >
                   <img
-                    src={`https://phuonganhboutique-production.up.railway.app${image}`}
+                    src={`${import.meta.env.VITE_MEDIA_URL}/uploads/clothes/${image}`}
                     alt={`${product.name} thumbnail ${index + 1}`}
                     style={{
                       width: '100%',
