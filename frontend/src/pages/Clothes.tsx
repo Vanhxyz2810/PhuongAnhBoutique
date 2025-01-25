@@ -21,9 +21,11 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Container
 } from '@mui/material';
-import { Add, Edit, Delete, CloudUpload } from '@mui/icons-material';
+import { Edit, Delete, CloudUpload } from '@mui/icons-material';
+import axiosInstance from '../utils/axios';
 
 interface Clothes {
   id: string;
@@ -170,35 +172,81 @@ const Clothes = () => {
     setOpen(true);
   };
 
+  const handleCreateTestData = async () => {
+    try {
+      const testClothes = [
+        {
+          name: "Váy cưới trắng công chúa",
+          ownerName: "Phương Anh",
+          rentalPrice: 2000,
+          description: "Váy cưới màu trắng, phong cách công chúa lộng lẫy",
+          image: "https://res.cloudinary.com/dowioz8of/image/upload/v1737806494/izey2gfknuxlt6vabiae.jpg",
+          status: "available"
+        },
+        {
+          name: "Váy cưới đuôi cá sang trọng",
+          ownerName: "Phương Anh",
+          rentalPrice: 2000,
+          description: "Váy cưới đuôi cá, thiết kế ôm body quyến rũ",
+          image: "https://res.cloudinary.com/dowioz8of/image/upload/v1737806494/izey2gfknuxlt6vabiae.jpg",
+          status: "available"
+        },
+        {
+          name: "Váy cưới tay dài vintage",
+          ownerName: "Phương Anh",
+          rentalPrice: 2000,
+          description: "Váy cưới tay dài phong cách vintage cổ điển",
+          image: "https://res.cloudinary.com/dowioz8of/image/upload/v1737806494/izey2gfknuxlt6vabiae.jpg",
+          status: "available"
+        }
+      ];
+
+      for (const clothe of testClothes) {
+        await axiosInstance.post('/clothes', clothe);
+      }
+
+      // Refresh danh sách sau khi tạo
+      fetchClothes();
+    } catch (error) {
+      console.error('Error creating test data:', error);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            mb: 1, 
-            fontWeight: 'bold', 
-            color: 'primary.main'
-          }}
-        >
-          Quản Lý Quần Áo
-        </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<Add />}
-          sx={{
-            borderRadius: '20px',
-            px: 3,
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: '0 4px 12px rgba(255, 141, 199, 0.2)'
-            }
-          }}
-          onClick={() => setOpen(true)}
-        >
-          Thêm Quần Áo
-        </Button>
-      </div>
+    <Container>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Quản Lý Quần Áo</Typography>
+        <Box>
+          {/* Thêm button test */}
+          <Button 
+            variant="outlined"
+            onClick={handleCreateTestData}
+            sx={{ 
+              mr: 2,
+              color: '#FF1493',
+              borderColor: '#FF1493',
+              '&:hover': {
+                borderColor: '#FF69B4',
+                backgroundColor: 'rgba(255,20,147,0.04)'
+              }
+            }}
+          >
+            Tạo dữ liệu test
+          </Button>
+          <Button 
+            variant="contained"
+            onClick={() => setOpen(true)}
+            sx={{
+              bgcolor: '#FF1493',
+              '&:hover': {
+                bgcolor: '#FF69B4'
+              }
+            }}
+          >
+            Thêm trang phục
+          </Button>
+        </Box>
+      </Box>
 
       <TableContainer 
         component={Paper} 
@@ -398,7 +446,7 @@ const Clothes = () => {
           </DialogActions>
         </Dialog>
       </Box>
-    </div>
+    </Container>
   );
 };
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../utils/axios';
 
 const SuccessPayment = () => {
@@ -7,43 +7,38 @@ const SuccessPayment = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handlePaymentSuccess = async () => {
+    const updatePayment = async () => {
       try {
-        const orderCode = `PA${searchParams.get('orderCode')}`;
+        const orderCode = searchParams.get('orderCode');
         const status = searchParams.get('status');
-        const code = searchParams.get('code');
-        
-        console.log('=== PAYMENT SUCCESS PARAMS ===', {
-          orderCode,
-          status,
-          code
-        });
 
-        if ((status === 'PAID' || code === '00') && orderCode) {
-          try {
-            await axiosInstance.post(`/rentals/updatePayment/${orderCode}`, {
-              status: 'approved'
-            });
-          } catch (error) {
-            console.error('Error updating payment status:', error);
-          }
+        if (orderCode && status === 'PAID') {
+          // Thêm prefix PA vào orderCode
+          const fullOrderCode = `PA${orderCode}`;
+          
+          await axiosInstance.post(`/rentals/updatePayment/${fullOrderCode}`, {
+            status: 'approved'  // Đổi 'PAID' thành 'approved' để khớp với backend
+          });
 
-          navigate(`/rental-success?orderCode=${orderCode}`);
+          // Chuyển hướng về trang rental-success thay vì /error
+          navigate(`/rental-success?orderCode=${fullOrderCode}`);
         } else {
-          console.log('Invalid status or orderCode:', { status, code, orderCode });
           navigate('/');
         }
       } catch (error) {
-        console.error('=== PAYMENT SUCCESS ERROR ===', error);
-        navigate('/');
+        console.error('Error updating payment:', error);
+        navigate('/');  // Chuyển về trang chủ thay vì /error
       }
     };
 
-    handlePaymentSuccess();
+    updatePayment();
   }, [searchParams, navigate]);
 
   return (
-    <div>Đang xử lý thanh toán...</div>
+    <div style={{ textAlign: 'center', padding: '2rem' }}>
+      <h2>Đang xử lý thanh toán...</h2>
+      <p>Vui lòng đợi trong giây lát</p>
+    </div>
   );
 };
 

@@ -10,7 +10,6 @@ import {
   CardMedia,
   Divider,
   Button,
-
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -30,7 +29,7 @@ interface Rental {
   clothes: {
     id: string;
     name: string;
-    images: string[];
+    image: string;
   };
 }
 
@@ -78,20 +77,20 @@ const MyOrders = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        {orders.map((order) => (
+        {orders.map((order: Rental) => (
           <Grid item xs={12} key={order.id}>
             <Card sx={{ display: 'flex', p: 2 }}>
               <CardMedia
                 component="img"
                 sx={{ width: 140, height: 140, objectFit: 'cover' }}
-                image={order.clothes.images[0]}
-                alt={order.clothes.name}
+                image={order.clothes?.image || '/placeholder.jpg'}
+                alt={order.clothes?.name || 'Product'}
               />
               <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, ml: 2 }}>
                 <CardContent sx={{ flex: '1 0 auto', p: 0 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                     <Typography variant="h6" gutterBottom>
-                      {order.clothes.name}
+                      {order.clothes?.name || 'Product'}
                     </Typography>
                     <OrderStatus status={order.status} />
                   </Box>

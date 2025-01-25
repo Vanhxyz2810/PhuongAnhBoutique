@@ -184,7 +184,7 @@ const ProductDetail = () => {
 
   // Thêm useEffect để poll payment status
   useEffect(() => {
-    let intervalId: number;
+    let intervalId: ReturnType<typeof setInterval>;
     
     if (showPayment && paymentInfo.orderCode) {
       intervalId = setInterval(async () => {

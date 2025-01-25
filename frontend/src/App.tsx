@@ -77,7 +77,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/rental-success" element={<RentalSuccess />} />
-              <Route path="/success-payment" element={<SuccessPayment />} />
+              <Route path="/success" element={<SuccessPayment />} />
             </Routes>
           </Layout>
         </Router>

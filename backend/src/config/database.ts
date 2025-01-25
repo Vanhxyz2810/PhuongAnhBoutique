@@ -3,6 +3,9 @@ import { Rental } from "../models/Rental";
 import { Clothes } from "../models/Clothes";
 import { User } from '../models/User';
 import { Session } from '../models/Session';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 console.log('Database config:', {
   host: process.env.DB_HOST,

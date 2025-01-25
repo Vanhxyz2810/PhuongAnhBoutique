@@ -2,6 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Jo
 import { Clothes } from './Clothes';
 import { User } from './User';
 
+export type RentalStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+
 @Entity()
 export class Rental {
   @PrimaryGeneratedColumn()
@@ -16,7 +18,10 @@ export class Rental {
   @Column()
   phone!: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    nullable: true
+  })
   identityCard!: string;
 
   @Column({ type: 'timestamp' })
@@ -30,9 +35,9 @@ export class Rental {
 
   @Column({
     type: 'varchar',
-    default: 'pending'
+    enum: ['pending', 'approved', 'rejected', 'completed']
   })
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status!: RentalStatus;
 
   @Column()
   clothesId!: string;
