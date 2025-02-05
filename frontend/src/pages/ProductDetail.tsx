@@ -233,19 +233,34 @@ const ProductDetail = () => {
     };
   }, [showPayment, paymentInfo.orderCode, calculateTotal]);
 
-  useEffect(() => {
-    const fetchBookedDates = async () => {
-      try {
-        const response = await axiosInstance.get(`/rentals/booked-dates/${id}`);
+  const fetchBookedDates = async () => {
+    try {
+      console.log('Fetching booked dates for:', id);
+      const response = await axiosInstance.get(`/rentals/booked-dates/${id}`);
+      if (response.data) {
+        console.log('Booked dates:', response.data);
         setBookedDates(response.data);
-      } catch (error) {
-        console.error('Error fetching booked dates:', error);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching booked dates:', error);
+      // Thêm xử lý lỗi UI nếu cần
+      setError('Không thể tải thông tin ngày đã đặt');
+    }
+  };
 
+  // Thêm useEffect để gọi lại API khi có thay đổi về đặt hàng
+  useEffect(() => {
     if (id) {
       fetchBookedDates();
     }
+    // Polling mỗi 30s để cập nhật ngày đã đặt
+    const intervalId = setInterval(() => {
+      if (id) {
+        fetchBookedDates();
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, [id]);
 
   // Kiểm tra ngày có được đặt không

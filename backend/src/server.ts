@@ -12,6 +12,8 @@ import fs from 'fs';
 import { User } from './models/User';
 import bcrypt from 'bcrypt';
 import { AppDataSource } from './config/database';
+import helmet from 'helmet';
+// import morgan from 'morgan';
 
 dotenv.config();
 
@@ -19,11 +21,28 @@ const app = express();
 const port = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/identity', express.static(path.join(__dirname, '../uploads/identity')));
 app.use('/uploads/clothes', express.static(path.join(__dirname, '../uploads/clothes')));
+
+// Thêm middleware logging
+// if (process.env.NODE_ENV === 'production') {
+//   app.use(require('morgan')('combined'));
+// }
+
+// Thêm security headers
+app.use(helmet());
+app.disable('x-powered-by');
+
+// Thêm cấu hình session cho production
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 const uploadDirs = [
   path.join(__dirname, '../uploads'),
@@ -80,4 +99,9 @@ connectDB().then(async () => {
   });
 }).catch(error => {
   console.error("Không thể khởi động server:", error);
+});
+
+// Thêm xử lý lỗi toàn cục
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
 }); 

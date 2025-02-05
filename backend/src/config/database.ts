@@ -13,18 +13,20 @@ console.log('Database config:', {
   database: process.env.DB_NAME
 });
 
-export const AppDataSource = new DataSource({
-  type: "postgres",
+const dbConfig = {
+  type: "postgres" as const,
   url: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  } : false,
+  } : false,  // Tắt SSL khi chạy local
   synchronize: true,
   logging: true,
   entities: [Clothes, Rental, User, Session],
   migrations: [],
   subscribers: []
-});
+};
+
+export const AppDataSource = new DataSource(dbConfig);
 
 export const connectDB = async () => {
   try {

@@ -191,7 +191,7 @@ export default {
           // Khi xác nhận đơn hàng
           await rentalRepository.update(id, { 
             status,
-            approvedAt: new Date() 
+            approvedAt: new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }) 
           });
           // Cập nhật trạng thái quần áo thành đang cho thuê
           await clothesRepository.update(rental.clothesId, {
@@ -203,7 +203,7 @@ export default {
           // Khi hoàn thành đơn hàng (khách đã trả đồ)
           await rentalRepository.update(id, { 
             status,
-            completedAt: new Date()
+            completedAt: new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
           });
           // Cập nhật trạng thái quần áo thành có sẵn
           await clothesRepository.update(rental.clothesId, {
@@ -215,7 +215,7 @@ export default {
           // Khi từ chối đơn hàng
           await rentalRepository.update(id, { 
             status,
-            rejectedAt: new Date()
+            rejectedAt: new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
           });
           // Cập nhật lại trạng thái quần áo thành available
           await clothesRepository.update(rental.clothesId, {
@@ -489,24 +489,37 @@ export default {
   getRentalDates: async (req: Request, res: Response) => {
     try {
       const { clothesId } = req.params;
+      console.log('Getting booked dates for clothes:', clothesId);
+      
+      // Kiểm tra xem clothesId có tồn tại không
+      const clothes = await clothesRepository.findOne({
+        where: { id: clothesId }
+      });
+
+      if (!clothes) {
+        return res.status(404).json({ 
+          message: 'Không tìm thấy sản phẩm' 
+        });
+      }
       
       const rentals = await rentalRepository.find({
         where: {
           clothesId,
           status: In([RentalStatus.APPROVED, RentalStatus.PENDING, RentalStatus.PENDING_PAYMENT]),
-        },
-        select: ['rentDate', 'returnDate']
+        }
       });
+
+      console.log('Found rentals:', rentals);
 
       const bookedDates = rentals.map(rental => ({
         start: rental.rentDate,
         end: rental.returnDate
       }));
 
-      res.json(bookedDates);
+      return res.json(bookedDates);
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ message: 'Lỗi server' });
+      console.error('Error getting rental dates:', error);
+      return res.status(500).json({ message: 'Lỗi server' });
     }
   },
 }; 

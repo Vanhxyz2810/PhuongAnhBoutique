@@ -72,14 +72,22 @@ export default {
         }
       }
 
-      await clothesRepository.update(req.params.id, {
+      const updateData = {
         name: req.body.name,
         ownerName: req.body.ownerName,
         rentalPrice: Number(req.body.rentalPrice),
         description: req.body.description,
         status: req.body.status,
         ...(req.file && { image: `/uploads/clothes/${req.file.filename}` })
-      });
+      };
+
+      // Thêm logic xử lý Cloudinary cho production
+      if (process.env.NODE_ENV === 'production' && req.file) {
+        const cloudinaryUrl = await uploadToCloudinary(req.file);
+        updateData.image = cloudinaryUrl;
+      }
+
+      await clothesRepository.update(req.params.id, updateData);
 
       const updatedClothes = await clothesRepository.findOne({
         where: { id: req.params.id }

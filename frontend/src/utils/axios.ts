@@ -10,6 +10,12 @@ const axiosInstance = axios.create({
 
 console.log('Current API URL:', import.meta.env.VITE_API_URL);
 
+// Thêm log request URL vào interceptor
+axiosInstance.interceptors.request.use((config) => {
+  console.log('Making request to:', config.url);
+  return config;
+});
+
 // Add a request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
