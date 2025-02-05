@@ -21,4 +21,6 @@ router.get('/', auth as RequestHandler, checkRole(['admin']) as RequestHandler, 
 router.put('/:id/status', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.updateStatus as RequestHandler);
 router.delete('/:id', auth as RequestHandler, checkRole(['admin']) as RequestHandler, rentalController.deleteRental as RequestHandler);
 
+router.get('/booked-dates/:clothesId', rentalController.getRentalDates);
+
 export default router; 

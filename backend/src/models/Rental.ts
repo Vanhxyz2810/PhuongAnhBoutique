@@ -2,7 +2,15 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Jo
 import { Clothes } from './Clothes';
 import { User } from './User';
 
-export type RentalStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+export enum RentalStatus {
+  PENDING = 'pending',
+  PENDING_PAYMENT = 'pending_payment',
+  APPROVED = 'approved',
+  CANCELLED = 'cancelled',
+  REJECTED = 'rejected'
+}
+
+export type PaymentMethod = 'cash' | 'transfer';
 
 @Entity()
 export class Rental {
@@ -35,11 +43,12 @@ export class Rental {
 
   @Column({
     type: 'varchar',
-    enum: ['pending', 'approved', 'rejected', 'completed']
+    enum: Object.values(RentalStatus),
+    default: RentalStatus.PENDING
   })
   status!: RentalStatus;
 
-  @Column()
+  @Column() 
   clothesId!: string;
 
   @Column({ nullable: true })
@@ -82,4 +91,14 @@ export class Rental {
 
   @Column({ nullable: true })
   userId!: number;
+
+  @Column({
+    type: 'varchar',
+    enum: ['cash', 'transfer'],
+    default: 'transfer'
+  })
+  paymentMethod!: PaymentMethod;
+
+  @Column({ type: 'time', nullable: true })
+  pickupTime!: string;
 } 

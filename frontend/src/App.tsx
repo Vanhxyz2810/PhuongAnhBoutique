@@ -18,6 +18,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import RentalSuccess from './pages/RentalSuccess';
 import SuccessPayment from './pages/SuccessPayment';
+import { SnackbarProvider } from 'notistack';
+import PaymentCancel from './pages/PaymentCancel';
 
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
@@ -35,54 +37,68 @@ const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: 
 
 function App() {
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              
-              {/* Routes cho admin */}
-              <Route path="/clothes" element={
-                <PrivateRoute roles={['admin']}>
-                  <Clothes />
-                </PrivateRoute>
-              } />
-              <Route path="/customers" element={
-                <PrivateRoute roles={['admin']}>
-                  <Customers />
-                </PrivateRoute>
-              } />
-              <Route path="/rentals" element={
-                <PrivateRoute roles={['admin']}>
-                  <Rentals />
-                </PrivateRoute>
-              } />
-              <Route path="/revenue" element={
-                <PrivateRoute roles={['admin']}>
-                  <Revenue />
-                </PrivateRoute>
-              } />
-              
-              {/* Route cho user đã đăng nhập */}
-              <Route path="/my-orders" element={
-                <PrivateRoute>
-                  <MyOrders />
-                </PrivateRoute>
-              } />
-              
-              {/* Public routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/rental-success" element={<RentalSuccess />} />
-              <Route path="/success" element={<SuccessPayment />} />
-            </Routes>
-          </Layout>
-        </Router>
-      </ThemeProvider>
-    </LocalizationProvider>
+    <SnackbarProvider 
+      maxSnack={3} 
+      anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'right',
+      }}
+    >
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router
+            future={{ 
+              v7_startTransition: true,
+              v7_relativeSplatPath: true 
+            }}
+          >
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                
+                {/* Routes cho admin */}
+                <Route path="/clothes" element={
+                  <PrivateRoute roles={['admin']}>
+                    <Clothes />
+                  </PrivateRoute>
+                } />
+                <Route path="/customers" element={
+                  <PrivateRoute roles={['admin']}>
+                    <Customers />
+                  </PrivateRoute>
+                } />
+                <Route path="/rentals" element={
+                  <PrivateRoute roles={['admin']}>
+                    <Rentals />
+                  </PrivateRoute>
+                } />
+                <Route path="/revenue" element={
+                  <PrivateRoute roles={['admin']}>
+                    <Revenue />
+                  </PrivateRoute>
+                } />
+                
+                {/* Route cho user đã đăng nhập */}
+                <Route path="/my-orders" element={
+                  <PrivateRoute>
+                    <MyOrders />
+                  </PrivateRoute>
+                } />
+                
+                {/* Public routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/rental-success" element={<RentalSuccess />} />
+                <Route path="/success" element={<SuccessPayment />} />
+                <Route path="/cancel" element={<PaymentCancel />} />
+              </Routes>
+            </Layout>
+          </Router>
+        </ThemeProvider>
+      </LocalizationProvider>
+    </SnackbarProvider>
   );
 }
 

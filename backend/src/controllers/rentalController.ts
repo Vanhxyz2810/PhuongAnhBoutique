@@ -7,7 +7,7 @@ import { AppDataSource } from '../config/database';
 import { generateOrderCode } from '../utils/orderCode';
 import { AuthRequest } from '../types';
 import payos from '../config/payos';
-import { Not } from 'typeorm';
+import { Not, In } from 'typeorm';
 
 const rentalRepository = AppDataSource.getRepository(Rental);
 const clothesRepository = AppDataSource.getRepository(Clothes);
@@ -65,10 +65,11 @@ export default {
 
       // Tạo URL thanh toán PayOS
       const amount = Number(rentalData.totalAmount);
+
       const paymentData = {
         orderCode: parseInt(orderCode.replace(/\D/g, '')),
         amount,
-        description: `Thuê ${clothes.name}`,
+        description: orderCode, // Chỉ dùng mã đơn hàng làm nội dung chuyển khoản
         cancelUrl: `${process.env.FRONTEND_URL}/cancel`,
         returnUrl: `${process.env.FRONTEND_URL}/success`,
         items: [{
@@ -78,16 +79,18 @@ export default {
         }]
       };
 
-      const paymentResponse = await payos.createPaymentLink(paymentData);
+      let paymentResponse;
+      if (rentalData.paymentMethod === 'transfer') {
+        paymentResponse = await payos.createPaymentLink(paymentData);
 
-      if (!paymentResponse.checkoutUrl) {
-        return res.status(400).json({ 
-          message: 'Không thể tạo link thanh toán' 
-        });
+        if (!paymentResponse.checkoutUrl) {
+          return res.status(400).json({ 
+            message: 'Không thể tạo link thanh toán' 
+          });
+        }
       }
 
-      // Lưu thông tin đơn hàng vào cache hoặc temporary storage
-      // thay vì lưu vào database ngay
+      // Lưu thông tin đơn hàng
       const tempRentalData: Partial<Rental> = {
         orderCode,
         userId: user.id,
@@ -98,19 +101,33 @@ export default {
         returnDate: new Date(rentalData.returnDate),
         totalAmount: amount,
         identityCard: file ? `/uploads/identity/${file.filename}` : '',
-        status: 'pending' as RentalStatus
+        status: rentalData.paymentMethod === 'cash' ? RentalStatus.PENDING : RentalStatus.PENDING_PAYMENT,
+        paymentMethod: rentalData.paymentMethod,
+        pickupTime: rentalData.pickupTime,
       };
 
-      // Có thể lưu vào Redis hoặc temporary table
-      // Ở đây tạm thời lưu vào database nhưng với status pending_payment
       const rental = rentalRepository.create(tempRentalData);
       await rentalRepository.save(rental);
 
-      // Trả về URL thanh toán
-      res.json({
-        orderCode,
-        paymentUrl: paymentResponse.checkoutUrl
-      });
+      // Cập nhật trạng thái quần áo nếu thanh toán tiền mặt
+      if (rentalData.paymentMethod === 'cash') {
+        await clothesRepository.update(clothes.id, {
+          status: 'rented'
+        });
+      }
+
+      // Trả về response tùy theo phương thức thanh toán
+      if (rentalData.paymentMethod === 'transfer' && paymentResponse?.checkoutUrl) {
+        res.json({
+          orderCode,
+          paymentUrl: paymentResponse.checkoutUrl
+        });
+      } else {
+        res.json({
+          orderCode,
+          message: 'Đặt hàng thành công'
+        });
+      }
 
     } catch (error) {
       console.error('Error creating rental:', error);
@@ -245,7 +262,7 @@ export default {
       const rentals = await rentalRepository.find({
         where: {
           userId: req.user.id,
-          status: Not('pending')
+          status: Not(RentalStatus.PENDING_PAYMENT)
         },
         relations: ['clothes'],
         order: { createdAt: 'DESC' }
@@ -271,12 +288,12 @@ export default {
       if (status === 'PAID') {
         await rentalRepository.update(
           { orderCode },
-          { status: 'approved' }
+          { status: RentalStatus.APPROVED }
         );
       } else if (status === 'CANCELLED') {
         const rental = await rentalRepository.findOne({ where: { orderCode } });
         if (rental) {
-          await rentalRepository.update(rental.id, { status: 'rejected' });
+          await rentalRepository.update(rental.id, { status: RentalStatus.REJECTED });
           await clothesRepository.update(rental.clothesId, { status: 'available' });
         }
       }
@@ -299,23 +316,23 @@ export default {
         return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
       }
 
-      // Nếu đơn hàng đã approved hoặc rejected thì trả về status luôn
-      if (rental.status !== 'pending') {
+      // Nếu đơn hàng không phải đang chờ thanh toán thì trả về status luôn
+      if (rental.status !== RentalStatus.PENDING_PAYMENT) {
         return res.json({ status: rental.status });
       }
 
       // Kiểm tra xem QR code có hết hạn chưa
       if (rental.expireAt && new Date() > rental.expireAt) {
-        await rentalRepository.update(rental.id, { status: 'rejected' });
+        await rentalRepository.update(rental.id, { status: RentalStatus.REJECTED });
         await clothesRepository.update(rental.clothesId, { status: 'available' });
-        return res.json({ status: 'rejected', message: 'QR code đã hết hạn' });
+        return res.json({ status: RentalStatus.REJECTED, message: 'QR code đã hết hạn' });
       }
 
       // Kiểm tra giao dịch ngân hàng
       const isTransactionSuccess = await checkBankTransaction(orderCode);
       if (isTransactionSuccess) {
-        await rentalRepository.update(rental.id, { status: 'approved' });
-        return res.json({ status: 'approved' });
+        await rentalRepository.update(rental.id, { status: RentalStatus.APPROVED });
+        return res.json({ status: RentalStatus.APPROVED });
       }
 
       res.json({ status: rental.status });
@@ -358,7 +375,7 @@ export default {
       }
 
       // Cập nhật trạng thái đơn hàng
-      rental.status = 'approved';
+      rental.status = RentalStatus.APPROVED;
       await rentalRepository.save(rental);
 
       // Cập nhật trạng thái sản phẩm
@@ -423,11 +440,11 @@ export default {
       }
 
       // Cập nhật trạng thái đơn thuê
-      rental.status = status; // 'approved'
+      rental.status = status === 'cancelled' ? RentalStatus.CANCELLED : RentalStatus.APPROVED;
       await rentalRepository.save(rental);
 
-      // Cập nhật trạng thái quần áo thành rented
-      if (rental.clothes) {
+      // Nếu thanh toán thành công thì cập nhật trạng thái quần áo
+      if (rental.status === RentalStatus.APPROVED && rental.clothes) {
         rental.clothes.status = 'rented';
         await clothesRepository.save(rental.clothes);
       }
@@ -453,7 +470,7 @@ export default {
       }
 
       // Nếu đơn đang được thuê thì không cho xóa
-      if (rental.status === 'approved') {
+      if (rental.status === RentalStatus.APPROVED) {
         return res.status(400).json({ 
           message: 'Không thể xóa đơn đang được thuê' 
         });
@@ -467,5 +484,29 @@ export default {
       console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
-  }
+  },
+
+  getRentalDates: async (req: Request, res: Response) => {
+    try {
+      const { clothesId } = req.params;
+      
+      const rentals = await rentalRepository.find({
+        where: {
+          clothesId,
+          status: In([RentalStatus.APPROVED, RentalStatus.PENDING, RentalStatus.PENDING_PAYMENT]),
+        },
+        select: ['rentDate', 'returnDate']
+      });
+
+      const bookedDates = rentals.map(rental => ({
+        start: rental.rentDate,
+        end: rental.returnDate
+      }));
+
+      res.json(bookedDates);
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
 }; 

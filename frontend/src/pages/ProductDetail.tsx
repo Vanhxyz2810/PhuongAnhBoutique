@@ -16,7 +16,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import Snowfall from 'react-snowfall';
@@ -29,6 +33,13 @@ import Snowfall from 'react-snowfall';
 
 import axiosInstance from '../utils/axios';
 // import { AxiosError } from 'axios';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import type { TextFieldProps } from '@mui/material/TextField';
 
 // Định nghĩa theme màu sắc
 const theme = {
@@ -75,19 +86,14 @@ interface ApiError {
   };
 }
 
-// interface RentalFormData {
-//   customerName: string;
-//   phone: string;
-//   identityCard: File | null;
-//   studentCard: File | null;
-//   rentDate: Date | null;
-//   returnDate: Date | null;
-//   paymentQR?: string;
-//   orderCode?: string;
-// }
-
-// Lazy load RentalForm
-const RentalForm = lazy(() => import('../components/RentalForm'));
+// Thêm interface cho form data
+interface RentalFormData {
+  customerName: string;
+  phone: string;
+  identityCard: File | null;
+  rentDate: Date | null;
+  returnDate: Date | null;
+}
 
 const SnowfallEffect = memo(() => (
   <Snowfall 
@@ -120,17 +126,20 @@ const ProductDetail = () => {
   const [openRentalForm, setOpenRentalForm] = useState(false);
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RentalFormData>({
     customerName: '',
     phone: '',
-    identityCard: null as File | null,
-    rentDate: null as Date | null,
-    returnDate: null as Date | null,
+    identityCard: null,
+    rentDate: null,
+    returnDate: null,
   });
   const [paymentInfo, setPaymentInfo] = useState<{
     orderCode?: string;
     qrCodeUrl?: string;
   }>({});
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('transfer');
+  const [pickupTime, setPickupTime] = useState<Date | null>(null);
+  const [bookedDates, setBookedDates] = useState<{start: string, end: string}[]>([]);
 
   const calculateTotal = useCallback(() => {
     if (!formData.rentDate || !formData.returnDate || !product) {
@@ -224,6 +233,51 @@ const ProductDetail = () => {
     };
   }, [showPayment, paymentInfo.orderCode, calculateTotal]);
 
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      try {
+        const response = await axiosInstance.get(`/rentals/booked-dates/${id}`);
+        setBookedDates(response.data);
+      } catch (error) {
+        console.error('Error fetching booked dates:', error);
+      }
+    };
+
+    if (id) {
+      fetchBookedDates();
+    }
+  }, [id]);
+
+  // Kiểm tra ngày có được đặt không
+  const isDateBooked = useCallback((date: Date) => {
+    if (!date || !bookedDates.length) return false;
+
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+
+    return bookedDates.some(booking => {
+      const start = new Date(booking.start);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(booking.end);
+      end.setHours(0, 0, 0, 0);
+
+      return checkDate >= start && checkDate <= end;
+    });
+  }, [bookedDates]);
+
+  // Tách riêng hàm xử lý thay đổi ngày
+  const handleDateChange = useCallback((field: 'rentDate' | 'returnDate') => (newValue: Date | null) => {
+    if (!newValue) return;
+
+    const date = new Date(newValue);
+    date.setHours(0, 0, 0, 0);
+
+    setFormData(prev => ({
+      ...prev,
+      [field]: date
+    }));
+  }, []);
+
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <Typography>Đang tải...</Typography>
@@ -255,17 +309,31 @@ const ProductDetail = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Vui lòng đăng nhập để thuê sản phẩm');
-      navigate('/login');
+    // Validate form trước khi submit
+    if (!formData.customerName.trim()) {
+      alert('Vui lòng nhập họ và tên');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      alert('Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (!formData.identityCard) {
+      alert('Vui lòng tải lên CCCD/CMND');
+      return;
+    }
+    if (!formData.rentDate || !formData.returnDate) {
+      alert('Vui lòng chọn ngày thuê và ngày trả');
       return;
     }
 
     try {
+      console.log('=== SUBMITTING RENTAL ===');
+      
       const formDataToSend = new FormData();
       formDataToSend.append('customerName', formData.customerName);
       formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('paymentMethod', paymentMethod);
       if (formData.identityCard) {
         formDataToSend.append('identityCard', formData.identityCard);
       }
@@ -274,40 +342,19 @@ const ProductDetail = () => {
       formDataToSend.append('totalAmount', calculateTotal().toString());
       formDataToSend.append('clothesId', product?.id || '');
 
-      console.log('=== SUBMITTING RENTAL ===');
-      console.log('Form data:', Object.fromEntries(formDataToSend));
-
-      const response = await axiosInstance.post('/rentals', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
-      });
-
+      const response = await axiosInstance.post('/rentals', formDataToSend);
       console.log('=== RENTAL RESPONSE ===');
       console.log('Response:', response.data);
-      
-      if (response.data.paymentUrl) {
-        // Thêm log để debug
-        console.log('Saving amount to localStorage:', {
-          key: `rental_amount_${response.data.orderCode}`,
-          amount: calculateTotal()
-        });
-        
+
+      setOpenRentalForm(false);
+
+      if (paymentMethod === 'transfer' && response.data.paymentUrl) {
         localStorage.setItem(`rental_amount_${response.data.orderCode}`, calculateTotal().toString());
         window.location.href = response.data.paymentUrl;
-      } else if (response.data.paymentQR) {
-        setPaymentInfo({
-          orderCode: response.data.orderCode,
-          qrCodeUrl: response.data.paymentQR
-        });
-        setShowPayment(true);
-      } else {
-        console.error('=== MISSING PAYMENT INFO ===');
-        console.error('Response data:', response.data);
-        alert('Không thể tạo thông tin thanh toán');
+      } else if (paymentMethod === 'cash') {
+        navigate(`/rental-success?orderCode=${response.data.orderCode}&amount=${calculateTotal()}&status=pending`);
       }
-
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('=== RENTAL ERROR ===');
       console.error('Error:', error);
       const apiError = error as ApiError;
@@ -546,27 +593,6 @@ const ProductDetail = () => {
         </Grid>
       </Box>
 
-      <Suspense fallback={<div>Loading...</div>}>
-        {openRentalForm && (
-          <RentalForm 
-            open={openRentalForm}
-            onClose={() => setOpenRentalForm(false)}
-            product={product}
-            formData={formData}
-            setFormData={setFormData}
-            onSubmit={handleSubmit}
-            onFileChange={handleFileChange}
-            onPhoneChange={handlePhoneChange}
-            isPhoneValid={isPhoneValid}
-            onUploadClick={handleUploadClick}
-            onPrivacyAccept={handlePrivacyAccept}
-            showPayment={showPayment}
-            paymentInfo={paymentInfo}
-            calculateTotal={calculateTotal}
-          />
-        )}
-      </Suspense>
-
       <Dialog open={openPrivacyDialog} onClose={() => setOpenPrivacyDialog(false)}>
         <DialogTitle>Chính sách bảo mật thông tin</DialogTitle>
         <DialogContent>
@@ -592,6 +618,157 @@ const ProductDetail = () => {
           <Button onClick={() => setOpenPrivacyDialog(false)}>Hủy</Button>
           <Button variant="contained" onClick={handlePrivacyAccept}>
             Đồng ý và Tiếp tục
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openRentalForm}>
+        <DialogTitle>Thông tin thuê đồ</DialogTitle>
+        <DialogContent>
+          {/* Thông tin cá nhân */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Họ và tên"
+              value={formData.customerName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData(prev => ({
+                  ...prev,
+                  customerName: e.target.value
+                }));
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Số điện thoại"
+              value={formData.phone}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData(prev => ({
+                  ...prev,
+                  phone: e.target.value
+                }));
+              }}
+            />
+            <Button
+              component="label"
+              variant="outlined"
+              fullWidth
+            >
+              Upload CCCD/CMND
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, 'identityCard')}
+              />
+            </Button>
+            {formData.identityCard && (
+              <Typography variant="caption" color="success.main">
+                Đã tải lên: {formData.identityCard.name}
+              </Typography>
+            )}
+
+            {/* Phương thức thanh toán */}
+            <FormControl fullWidth>
+              <InputLabel>Phương thức thanh toán</InputLabel>
+              <Select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'transfer')}
+              >
+                <MenuItem value="transfer">Chuyển khoản</MenuItem>
+                <MenuItem value="cash">Tiền mặt</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Chọn ngày và giờ */}
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+              <DatePicker
+                label="Ngày thuê"
+                value={formData.rentDate}
+                onChange={handleDateChange('rentDate')}
+                shouldDisableDate={isDateBooked}
+                disablePast
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  } as TextFieldProps
+                }}
+              />
+              <DatePicker
+                label="Ngày trả"
+                value={formData.returnDate}
+                onChange={handleDateChange('returnDate')}
+                shouldDisableDate={isDateBooked}
+                minDate={formData.rentDate || undefined}
+                disablePast
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  } as TextFieldProps
+                }}
+              />
+              <TimePicker
+                label="Giờ lấy hàng"
+                value={pickupTime}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setPickupTime(newValue);
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  } as TextFieldProps
+                }}
+              />
+            </LocalizationProvider>
+
+            {/* Hiển thị tổng tiền */}
+            <Box sx={{ 
+              mt: 2, 
+              p: 2, 
+              bgcolor: 'rgba(255,20,147,0.04)', 
+              borderRadius: 1,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Tổng tiền:
+              </Typography>
+              <Typography variant="h6" color="primary.main" fontWeight="bold">
+                {new Intl.NumberFormat('vi-VN').format(calculateTotal())}₫
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={() => setOpenRentalForm(false)}
+            variant="outlined"
+            sx={{
+              color: '#FF1493',
+              borderColor: '#FF1493',
+              '&:hover': {
+                borderColor: '#FF69B4',
+                backgroundColor: 'rgba(255,20,147,0.04)'
+              }
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              bgcolor: '#FF1493',
+              '&:hover': {
+                bgcolor: '#FF69B4'
+              }
+            }}
+          >
+            Xác nhận
           </Button>
         </DialogActions>
       </Dialog>
