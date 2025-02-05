@@ -40,6 +40,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import type { TextFieldProps } from '@mui/material/TextField';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 // Định nghĩa theme màu sắc
 const theme = {
@@ -139,7 +141,7 @@ const ProductDetail = () => {
   }>({});
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('transfer');
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
-  const [bookedDates, setBookedDates] = useState<{start: string, end: string}[]>([]);
+  const [bookedDates, setBookedDates] = useState<{start: Date, end: Date}[]>([]);
 
   const calculateTotal = useCallback(() => {
     if (!formData.rentDate || !formData.returnDate || !product) {
@@ -380,16 +382,6 @@ const ProductDetail = () => {
     }
   };
 
-  const handleUploadClick = () => {
-    setOpenPrivacyDialog(true);
-  };
-
-  const handlePrivacyAccept = () => {
-    setOpenPrivacyDialog(false);
-    const fileInput = document.getElementById('cccd-upload') as HTMLInputElement;
-    fileInput?.click();
-  };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const phoneNumber = e.target.value;
     if (!/^\d*$/.test(phoneNumber)) return;
@@ -403,13 +395,22 @@ const ProductDetail = () => {
 
   const isPhoneValid = formData.phone.startsWith('0') && formData.phone.length >= 10;
 
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <Container maxWidth="xl" sx={{ bgcolor: theme.colors.background, minHeight: '100vh', py: 4, position: 'relative' }}>
       <SnowfallEffect />
 
       <Box sx={{ position: 'relative', zIndex: 2 }}>
         <Grid container spacing={4} sx={{ mb: 6 }}>
-          {/* Phần hình ảnh */}
+          {/* Phần hình ảnh - bên trái */}
           <Grid item xs={12} md={7}>
             <Box
               sx={{
@@ -472,68 +473,111 @@ const ProductDetail = () => {
             </Box>
           </Grid>
 
-          {/* Phần thông tin */}
+          {/* Phần thông tin - bên phải */}
           <Grid item xs={12} md={5}>
+            {/* Tên sản phẩm */}
             <Typography variant="h4" sx={{ mb: 2, color: theme.colors.text }}>
               {product.name}
             </Typography>
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ color: '#666' }}>
-                SKU: {product.sku}
-              </Typography>
-            </Box>
 
-            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="h5" sx={{ color: theme.colors.sale, fontWeight: 'bold' }}>
+            {/* Giá */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" component="span" sx={{ color: theme.colors.sale, mr: 2 }}>
                 {formatPrice(product.price)}
               </Typography>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: theme.colors.original,
-                  textDecoration: 'line-through'
-                }}
+              <Typography
+                variant="h6"
+                component="span"
+                sx={{ textDecoration: 'line-through', color: theme.colors.original }}
               >
                 {formatPrice(product.originalPrice)}
               </Typography>
-              <Chip 
-                label="-50%" 
-                sx={{ 
-                  bgcolor: theme.colors.sale,
-                  color: 'white'
-                }}
-              />
             </Box>
 
-            {/* Chọn size */}
-            <Box sx={{ mb: 3 }}>
-              <Typography sx={{ mb: 1 }}>Kích thước:</Typography>
-              <RadioGroup
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value)}
-              >
-                {product.sizes.map((size: string) => (
-                  <FormControlLabel 
-                    key={size}
-                    value={size}
-                    control={<Radio />}
-                    label={size}
-                  />
-                ))}
-              </RadioGroup>
+            {/* Lịch cho thuê - đặt ở đây để dễ nhìn thấy */}
+            <Box sx={{ 
+              mb: 4, 
+              p: 2, 
+              bgcolor: 'white', 
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <Typography variant="h6" gutterBottom sx={{textAlign: 'center', color: theme.colors.primary }}>
+                Lịch cho thuê
+              </Typography>
+              {bookedDates.length > 0 ? (
+                <>
+                  <Typography variant="body2" color="textSecondary" textAlign='center' fontWeight= 'bold' gutterBottom>
+                    Bộ này đã được đặt trong các ngày:
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    {bookedDates.map((booking, index) => (
+                      <Typography key={index} sx={{ mt: 2, mb: 1, textAlign: 'center' }}>
+                         <Box 
+                            component="span" 
+                            sx={{ 
+                              fontWeight: 'bold',
+                              color: theme.colors.primary 
+                            }}
+                          >
+                            Từ
+                          </Box>{' '}
+                        <Box component="span" color="error">
+                          {formatDate(booking.start)}
+                        </Box>{' '}
+                        <Box 
+                          component="span" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            color: theme.colors.primary 
+                          }}
+                        >
+                          đến
+                        </Box>{' '}
+                        <Box component="span" color="error">
+                          {formatDate(booking.end)}
+                        </Box>
+                      </Typography>
+                    ))}
+                  </Box>
+
+                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                    <DateCalendar 
+                      readOnly
+                      disablePast
+                      shouldDisableDate={(date: Date) => isDateBooked(date)}
+                      sx={{ 
+                        '& .Mui-disabled': { 
+                          color: theme.colors.sale + '!important',
+                          opacity: 0.7 
+                        } 
+                      }}
+                    />
+                  </LocalizationProvider>
+                </>
+              ) : (
+                <Typography 
+                  color="success.main" 
+                  sx={{ 
+                    p: 2, 
+                    bgcolor: '#e8f5e9', 
+                    borderRadius: 1,
+                    textAlign: 'center' 
+                  }}
+                >
+                  ✨ Bộ này hiện đang trống lịch, bạn có thể đặt thuê ngay!
+                </Typography>
+              )}
             </Box>
 
-            {/* Thay thế 2 nút bằng 1 nút Thuê Ngay */}
+            {/* Nút Thuê ngay */}
             {product.status === 'available' ? (
               <Button
                 fullWidth
                 variant="contained"
                 sx={{
                   bgcolor: theme.colors.sale,
-                  '&:hover': {
-                    bgcolor: '#FF0080'
-                  },
+                  '&:hover': { bgcolor: '#FF0080' },
                   py: 1.5,
                   mb: 4,
                   fontSize: '1.1rem'
@@ -574,7 +618,57 @@ const ProductDetail = () => {
             </Box>
           </Grid>
         </Grid>
-
+        <Box mt={4}>
+          <Typography variant="h6" gutterBottom>
+            Lịch cho thuê
+          </Typography>
+          {bookedDates.length > 0 ? (
+            <>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Bộ này đã được đặt trong các ngày:
+              </Typography>
+              {bookedDates.map((booking, index) => (
+                <Typography key={index} sx={{ mb: 1 }}>
+                  • <Box 
+                      component="span" 
+                      sx={{ 
+                        fontWeight: 'bold',
+                        color: theme.colors.primary 
+                      }}
+                    >
+                      Từ
+                    </Box>{' '}
+                  <Box component="span" color="error">
+                    {formatDate(booking.start)}
+                  </Box>{' '}
+                  <Box 
+                    component="span" 
+                    sx={{ 
+                      fontWeight: 'bold',
+                      color: theme.colors.primary 
+                    }}
+                  >
+                    đến
+                  </Box>{' '}
+                  <Box component="span" color="error">
+                    {formatDate(booking.end)}
+                  </Box>
+                </Typography>
+              ))}
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                <DateCalendar 
+                  readOnly
+                  disablePast
+                  shouldDisableDate={(date: Date) => isDateBooked(date)}
+                />
+              </LocalizationProvider>
+            </>
+          ) : (
+            <Typography color="success.main">
+              Bộ này hiện đang trống lịch, bạn có thể đặt thuê ngay!
+            </Typography>
+          )}
+        </Box>
         {/* Phần chính sách và liên hệ */}
         <Grid container spacing={4}>
           {/* Chính sách đổi trả */}
@@ -606,6 +700,8 @@ const ProductDetail = () => {
             </Box>
           </Grid>
         </Grid>
+
+        
       </Box>
 
       <Dialog open={openPrivacyDialog} onClose={() => setOpenPrivacyDialog(false)}>
@@ -631,7 +727,10 @@ const ProductDetail = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenPrivacyDialog(false)}>Hủy</Button>
-          <Button variant="contained" onClick={handlePrivacyAccept}>
+          <Button variant="contained" onClick={() => {
+            setOpenPrivacyDialog(false);
+            document.getElementById('cccd-upload')?.click();
+          }}>
             Đồng ý và Tiếp tục
           </Button>
         </DialogActions>
@@ -664,24 +763,23 @@ const ProductDetail = () => {
                 }));
               }}
             />
-            <Button
-              component="label"
-              variant="outlined"
-              fullWidth
-            >
-              Upload CCCD/CMND
+            <Box sx={{ mb: 3 }}>
               <input
                 type="file"
-                hidden
+                id="cccd-upload"
                 accept="image/*"
+                style={{ display: 'none' }}
                 onChange={(e) => handleFileChange(e, 'identityCard')}
               />
-            </Button>
-            {formData.identityCard && (
-              <Typography variant="caption" color="success.main">
-                Đã tải lên: {formData.identityCard.name}
-              </Typography>
-            )}
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setOpenPrivacyDialog(true)}
+                startIcon={<CloudUploadIcon />}
+              >
+                {formData.identityCard ? 'Đã tải lên CCCD ✓' : 'Tải lên CCCD'}
+              </Button>
+            </Box>
 
             {/* Phương thức thanh toán */}
             <FormControl fullWidth>

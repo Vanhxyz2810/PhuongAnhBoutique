@@ -27,6 +27,7 @@ import MoneyIcon from '@mui/icons-material/MonetizationOn';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Delete } from '@mui/icons-material';
+import { theme } from '../theme';
 
 interface Rental {
   id: number;
@@ -105,7 +106,18 @@ const Rentals = () => {
   const stats = calculateStats();
 
   // Hàm mở/đóng modal xem ảnh
-  const handleOpenImage = (imageUrl: string) => setSelectedImage(imageUrl);
+  const handleOpenImage = (imageUrl: string) => {
+    if (!imageUrl) return;
+    
+    console.log('Opening image:', imageUrl); // Thêm log để debug
+    
+    const fullUrl = imageUrl.startsWith('/uploads') 
+      ? `${import.meta.env.VITE_MEDIA_URL}${imageUrl}`
+      : imageUrl;
+    
+    console.log('Full URL:', fullUrl); // Thêm log để debug
+    window.open(fullUrl, '_blank');
+  };
   const handleCloseImage = () => setSelectedImage(null);
 
   const handleDelete = async (id: number) => {
@@ -254,44 +266,57 @@ const Rentals = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Mã đơn</TableCell>
-                <TableCell>Khách hàng</TableCell>
-                <TableCell>Số điện thoại</TableCell>
-                <TableCell>Sản phẩm</TableCell>
-                <TableCell>Ngày thuê</TableCell>
-                <TableCell>Ngày trả</TableCell>
-                <TableCell>Tổng tiền</TableCell>
-                <TableCell>CCCD</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Thao tác</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Mã đơn</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Khách hàng</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Số điện thoại</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Sản phẩm</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Ngày thuê</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Ngày trả</TableCell>
+
+                <TableCell sx={{textAlign: 'center'}}>Tổng tiền</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>CCCD</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Trạng thái</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Thao tác</TableCell>
               </TableRow>
+
             </TableHead>
             <TableBody>
               {rentals.map((rental) => (
                 <TableRow key={rental.id}>
-                  <TableCell>{rental.orderCode}</TableCell>
-                  <TableCell>{rental.customerName}</TableCell>
-                  <TableCell>{rental.phone}</TableCell>
-                  <TableCell>{rental.clothes.name}</TableCell>
-                  <TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>{rental.orderCode}</TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>{rental.customerName}</TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>{rental.phone}</TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>{rental.clothes.name}</TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>
+
                     {format(new Date(rental.rentDate), 'dd/MM/yyyy', { locale: vi })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{textAlign: 'center'}}>
                     {format(new Date(rental.returnDate), 'dd/MM/yyyy', { locale: vi })}
                   </TableCell>
                   <TableCell>
                     {new Intl.NumberFormat('vi-VN').format(rental.totalAmount)}đ
                   </TableCell>
-                  <TableCell>
-                    {rental.identityCard && (
-                      <Tooltip title="Xem CCCD1">
+                  <TableCell sx={{ textAlign: 'center', width: '100px' }}>
+                    {rental.identityCard ? (
+                      <Tooltip title="Xem CCCD">
                         <IconButton 
                           size="small"
-                          onClick={() => handleOpenImage(`https://phuonganhboutique-production.up.railway.app${rental.identityCard}`)}
+                          onClick={() => handleOpenImage(rental.identityCard)}
+                          sx={{ 
+                            color: theme.palette.primary.main,
+                            '&:hover': {
+                              color: theme.palette.secondary.main
+                            }
+                          }}
                         >
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Chưa có
+                      </Typography>
                     )}
                   </TableCell>
                   <TableCell>
@@ -329,6 +354,7 @@ const Rentals = () => {
                     </IconButton>
                   </TableCell>
                 </TableRow>
+                
               ))}
             </TableBody>
           </Table>
