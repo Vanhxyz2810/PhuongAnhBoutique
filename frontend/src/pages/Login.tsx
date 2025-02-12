@@ -12,7 +12,7 @@ import {
 import { AxiosError } from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axios';
-
+import { enqueueSnackbar } from 'notistack';
 const Login = () => {
   const navigate = useNavigate();
   const { setAuth } = useAuth();
@@ -36,9 +36,9 @@ const Login = () => {
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof AxiosError) {
-        alert(error.response?.data?.message || 'Đăng nhập thất bại');
+        enqueueSnackbar(error.response?.data?.message || 'Đăng nhập thất bại', { variant: 'error' });
       } else {
-        alert('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        enqueueSnackbar('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.', { variant: 'error' });
       }
     }
   };

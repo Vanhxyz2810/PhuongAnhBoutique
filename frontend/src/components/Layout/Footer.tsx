@@ -15,7 +15,8 @@ import {
   Phone,
   LocationOn,
   Email,
-  KeyboardArrowUp
+  KeyboardArrowUp,
+  FacebookOutlined
 } from '@mui/icons-material';
 
 const Footer = () => {
@@ -144,19 +145,23 @@ const Footer = () => {
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <LocationOn sx={{ color: '#FF90BC' }} />
                 <Typography variant="body2" sx={{ color: '#4A4A4A' }}>
-                  123 Đường ABC, Quận XYZ, TP.HCM
+                  66 Đường Hoàng Dương, TP.HẢI PHÒNG
+                  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4422.773317104659!2d106.64384267583796!3d20.850718193868797!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314a7a118c7be3eb%3A0x2294b94b76fac2f7!2zNjYgxJDGsOG7nW5nIEhvw6BuZyBExrDGoW5nLCBBbiBUaMOhaSwgQW4gRMawxqFuZywgSOG6o2kgUGjDsm5nLCBWaeG7h3QgTmFt!5e1!3m2!1svi!2s!4v1739390625023!5m2!1svi!2s" width="400" height="300" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Phone sx={{ color: '#FF90BC' }} />
                 <Typography variant="body2" sx={{ color: '#4A4A4A' }}>
-                  0123 456 789
+                  <a href="tel:0763485997" style={{ textDecoration: 'none', color: '#4A4A4A' }}>
+                    076 348 5997
+                  </a>
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Email sx={{ color: '#FF90BC' }} />
+                <FacebookOutlined sx={{ color: '#FF90BC' }} />
                 <Typography variant="body2" sx={{ color: '#4A4A4A' }}>
-                  contact@paboutique.com
+                  <a href="https://www.facebook.com/profile.php?id=61558437202041" target="_blank" style={{ textDecoration: 'none', color: '#4A4A4A' }}>Phuong Anh Boutique - thuê váy xinh </a>
+                
                 </Typography>
               </Box>
             </Box>

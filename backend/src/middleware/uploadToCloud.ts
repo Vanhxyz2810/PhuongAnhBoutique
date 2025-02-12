@@ -11,12 +11,30 @@ console.log('Cloudinary config:', {
   api_key: process.env.CLOUDINARY_API_KEY
 });
 
-export const uploadToCloudinary = async (file: Express.Multer.File) => {
+export const uploadToCloudinary = async (file: Express.Multer.File, folder: string = 'uploads') => {
   try {
-    const result = await cloudinary.uploader.upload(file.path);
-    return result.secure_url;
+    // Kiểm tra nếu file có buffer (từ multer memoryStorage)
+    if (file.buffer) {
+      const b64 = Buffer.from(file.buffer).toString('base64');
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: 'auto',
+        folder
+      });
+      return result.secure_url;
+    }
+    
+    // Nếu file có path (từ multer diskStorage)
+    if (file.path) {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder
+      });
+      return result.secure_url;
+    }
+
+    throw new Error('Invalid file format');
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Error uploading to Cloudinary:', error);
     throw error;
   }
 }; 

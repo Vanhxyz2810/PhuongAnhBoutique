@@ -40,7 +40,7 @@ axiosInstance.interceptors.request.use(
 // Add a response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     console.error('Axios Response Error:', {
       status: error.response?.status,
       data: error.response?.data,

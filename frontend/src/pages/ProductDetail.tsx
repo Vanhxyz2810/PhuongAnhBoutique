@@ -42,6 +42,7 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import type { TextFieldProps } from '@mui/material/TextField';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { enqueueSnackbar } from 'notistack';
 
 // Định nghĩa theme màu sắc
 const theme = {
@@ -313,12 +314,12 @@ const ProductDetail = () => {
     return new Intl.NumberFormat('vi-VN').format(price) + '₫';
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'identityCard' | 'studentCard') => {
-    const file = event.target.files?.[0];
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setFormData(prev => ({
         ...prev,
-        [type]: file
+        identityCard: file
       }));
     }
   };
@@ -326,21 +327,21 @@ const ProductDetail = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form trước khi submit
+    // Validate form
     if (!formData.customerName.trim()) {
-      alert('Vui lòng nhập họ và tên');
+      enqueueSnackbar('Vui lòng nhập họ tên', {variant:'warning'})
       return;
     }
     if (!formData.phone.trim()) {
-      alert('Vui lòng nhập số điện thoại');
+      enqueueSnackbar('Vui lòng nhập số điện thoại', {variant:'warning'})
       return;
     }
     if (!formData.identityCard) {
-      alert('Vui lòng tải lên CCCD/CMND');
+      enqueueSnackbar('Vui lòng tải lên CCCD/CMND', {variant:'warning'})
       return;
     }
     if (!formData.rentDate || !formData.returnDate) {
-      alert('Vui lòng chọn ngày thuê và ngày trả');
+      enqueueSnackbar('Vui lòng chọn ngày thuê và ngày trả', {variant:'warning'})
       return;
     }
 
@@ -351,17 +352,31 @@ const ProductDetail = () => {
       formDataToSend.append('customerName', formData.customerName);
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('paymentMethod', paymentMethod);
+      
+      // Log để kiểm tra file trước khi gửi
+      console.log('Identity card file:', formData.identityCard);
+      
       if (formData.identityCard) {
         formDataToSend.append('identityCard', formData.identityCard);
       }
+      
       formDataToSend.append('rentDate', formData.rentDate?.toISOString() || '');
       formDataToSend.append('returnDate', formData.returnDate?.toISOString() || '');
       formDataToSend.append('totalAmount', calculateTotal().toString());
       formDataToSend.append('clothesId', product?.id || '');
 
-      const response = await axiosInstance.post('/rentals', formDataToSend);
-      console.log('=== RENTAL RESPONSE ===');
-      console.log('Response:', response.data);
+      // Log toàn bộ formData trước khi gửi
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      const response = await axiosInstance.post('/rentals', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'  // Đảm bảo header đúng
+        }
+      });
+      
+      console.log('=== RENTAL RESPONSE ===', response.data);
 
       setOpenRentalForm(false);
 
@@ -378,7 +393,7 @@ const ProductDetail = () => {
       if (apiError.response) {
         console.error('Response:', apiError.response.data);
       }
-      alert(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê');
+      enqueueSnackbar(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê', {variant:'error'})
     }
   };
 
@@ -769,15 +784,19 @@ const ProductDetail = () => {
                 id="cccd-upload"
                 accept="image/*"
                 style={{ display: 'none' }}
-                onChange={(e) => handleFileChange(e, 'identityCard')}
+                onChange={(e) => {
+                  handleFileChange(e);
+                }}
               />
               <Button
                 variant="outlined"
                 fullWidth
-                onClick={() => setOpenPrivacyDialog(true)}
+                onClick={() => {
+                  setOpenPrivacyDialog(true);
+                }}
                 startIcon={<CloudUploadIcon />}
               >
-                {formData.identityCard ? 'Đã tải lên CCCD ✓' : 'Tải lên CCCD'}
+                {formData.identityCard ? `Đã tải lên CCCD: ${formData.identityCard.name}` : 'Tải lên CCCD'}
               </Button>
             </Box>
 

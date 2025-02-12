@@ -17,10 +17,10 @@ import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import RentalSuccess from './pages/RentalSuccess';
-import SuccessPayment from './pages/SuccessPayment';
+// import SuccessPayment from './pages/SuccessPayment';
 import { SnackbarProvider } from 'notistack';
 import PaymentCancel from './pages/PaymentCancel';
-
+import Feedbacks from './pages/Feedbacks';
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
   
@@ -79,6 +79,11 @@ function App() {
                     <Revenue />
                   </PrivateRoute>
                 } />
+                <Route path="/feedbacks" element={
+                  <PrivateRoute roles={['admin']}>
+                    <Feedbacks />
+                  </PrivateRoute>
+                } />
                 
                 {/* Route cho user đã đăng nhập */}
                 <Route path="/my-orders" element={
@@ -91,7 +96,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/rental-success" element={<RentalSuccess />} />
-                <Route path="/success" element={<SuccessPayment />} />
+                {/* <Route path="/success" element={<SuccessPayment />} /> */}
                 <Route path="/cancel" element={<PaymentCancel />} />
               </Routes>
             </Layout>

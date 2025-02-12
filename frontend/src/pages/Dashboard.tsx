@@ -39,6 +39,14 @@ interface Clothes {
   status: 'available' | 'rented';
   image: string;
   description?: string;
+  category: string;
+}
+
+// Thêm interface Category
+interface Category {
+  id: number;
+  name: string;
+  isActive: boolean;
 }
 
 // Thêm các images cho hiệu ứng
@@ -57,19 +65,31 @@ const imagesLoaded = images.map(image => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [clothes, setClothes] = useState<Clothes[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
-    const fetchClothes = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/clothes');
-        setClothes(response.data);
+        // Fetch categories
+        const catResponse = await axiosInstance.get('/clothes/categories/all');
+        setCategories(catResponse.data);
+
+        // Fetch clothes
+        const clothesResponse = await axiosInstance.get('/clothes');
+        setClothes(clothesResponse.data);
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);
       }
     };
 
-    fetchClothes();
+    fetchData();
   }, []);
+
+  // Filter clothes by category
+  const filteredClothes = selectedCategory === 'all' 
+    ? clothes 
+    : clothes.filter(item => item.category === selectedCategory);
 
   // Thêm hàm xử lý click
   const handleProductClick = (id: string) => {
@@ -107,8 +127,39 @@ const Dashboard = () => {
           Bộ Sưu Tập Quần Áo
         </Typography>
         
+        {/* Category filter */}
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Chip
+            label="Tất cả"
+            onClick={() => setSelectedCategory('all')}
+            color={selectedCategory === 'all' ? 'primary' : 'default'}
+            sx={{ 
+              bgcolor: selectedCategory === 'all' ? theme.colors.primary : 'white',
+              color: selectedCategory === 'all' ? 'white' : theme.colors.text,
+              '&:hover': {
+                bgcolor: selectedCategory === 'all' ? theme.colors.buttonHoverAvailable : '#f5f5f5'
+              }
+            }}
+          />
+          {categories.map((cat) => (
+            <Chip
+              key={cat.id}
+              label={cat.name}
+              onClick={() => setSelectedCategory(cat.name)}
+              color={selectedCategory === cat.name ? 'primary' : 'default'}
+              sx={{ 
+                bgcolor: selectedCategory === cat.name ? theme.colors.primary : 'white',
+                color: selectedCategory === cat.name ? 'white' : theme.colors.text,
+                '&:hover': {
+                  bgcolor: selectedCategory === cat.name ? theme.colors.buttonHoverAvailable : '#f5f5f5'
+                }
+              }}
+            />
+          ))}
+        </Box>
+
         <Grid container spacing={2}>
-          {clothes.map((item) => (
+          {filteredClothes.map((item) => (
             <Grid item xs={6} sm={6} md={4} key={item.id} 
               onClick={() => handleProductClick(item.id)}
               sx={{ cursor: 'pointer' }}
@@ -242,7 +293,7 @@ const Dashboard = () => {
           ))}
         </Grid>
         
-        {clothes.length === 0 && (
+        {filteredClothes.length === 0 && (
           <Box 
             sx={{ 
               py: 8, 

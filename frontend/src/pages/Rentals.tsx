@@ -17,7 +17,13 @@ import {
   Dialog,
   DialogContent,
   IconButton,
-  Tooltip
+  Tooltip,
+  TextField,
+  InputAdornment,
+  Stack,
+  DialogTitle,
+  DialogActions,
+  Button
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -28,6 +34,10 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Delete } from '@mui/icons-material';
 import { theme } from '../theme';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
+import { enqueueSnackbar } from 'notistack';
 
 interface Rental {
   id: number;
@@ -37,7 +47,7 @@ interface Rental {
   totalAmount: number;
   rentDate: string;
   returnDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'pending_payment';
   identityCard: string;
   clothes: {
     id: string;
@@ -58,11 +68,16 @@ const Rentals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const fetchRentals = async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/rentals');
+      console.log('Rentals data:', response.data);
       setRentals(response.data);
     } catch (error) {
       console.error('Error fetching rentals:', error);
@@ -75,6 +90,10 @@ const Rentals = () => {
   useEffect(() => {
     fetchRentals();
   }, []);
+
+  useEffect(() => {
+    console.log('Current rentals:', rentals);
+  }, [rentals]);
 
   const handleStatusChange = async (rentalId: number, newStatus: string) => {
     try {
@@ -108,31 +127,42 @@ const Rentals = () => {
   // Hàm mở/đóng modal xem ảnh
   const handleOpenImage = (imageUrl: string) => {
     if (!imageUrl) return;
-    
-    console.log('Opening image:', imageUrl); // Thêm log để debug
-    
-    const fullUrl = imageUrl.startsWith('/uploads') 
-      ? `${import.meta.env.VITE_MEDIA_URL}${imageUrl}`
-      : imageUrl;
-    
-    console.log('Full URL:', fullUrl); // Thêm log để debug
-    window.open(fullUrl, '_blank');
+    setSelectedImage(imageUrl); // Chỉ cần set selectedImage để mở modal
   };
+
   const handleCloseImage = () => setSelectedImage(null);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Bạn có chắc muốn xóa đơn thuê này?')) {
+  const handleDelete = (id: number) => {
+    setDeleteId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId) {
       try {
-        await axiosInstance.delete(`/rentals/${id}`);
-        // Refresh lại danh sách
+        await axiosInstance.delete(`/rentals/${deleteId}`);
         fetchRentals();
-        alert('Đã xóa đơn thuê thành công');
+        enqueueSnackbar('Đã xóa đơn thuê thành công', {variant: 'success'});
       } catch (error) {
         console.error('Error deleting rental:', error);
-        alert('Lỗi khi xóa đơn thuê');
+        enqueueSnackbar('Lỗi khi xóa đơn thuê', {variant: 'error'});
       }
     }
+    setOpenDeleteDialog(false);
   };
+
+  const filteredRentals = rentals.filter((rental) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      rental.orderCode.toLowerCase().includes(searchLower) ||
+      rental.customerName.toLowerCase().includes(searchLower) ||
+      rental.phone.toLowerCase().includes(searchLower) ||
+      rental.clothes.name.toLowerCase().includes(searchLower);
+
+    const matchesStatus = filterStatus === 'all' || rental.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -257,9 +287,50 @@ const Rentals = () => {
         </Grid>
       </Paper>
 
-      {rentals.length === 0 ? (
+      {/* Thêm phần Search và Filter */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Tìm kiếm theo mã đơn, tên khách, SĐT, tên sản phẩm..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl sx={{ minWidth: 150 }}>
+          <Select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            displayEmpty
+          >
+            <MenuItem value="all">Tất cả trạng thái</MenuItem>
+            <MenuItem value="pending">Chờ xác nhận</MenuItem>
+            <MenuItem value="pending_payment">Chờ thanh toán</MenuItem>
+            <MenuItem value="approved">Đã xác nhận</MenuItem>
+            <MenuItem value="completed">Hoàn thành</MenuItem>
+            <MenuItem value="cancelled">Đã hủy</MenuItem>
+            <MenuItem value="rejected">Từ chối</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
+
+      {filteredRentals.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography>Chưa có đơn hàng nào</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <ShoppingBagOutlined sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.5 }} />
+            <Typography variant="h6" color="text.secondary">
+              Không tìm thấy đơn hàng nào
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Thử tìm kiếm với từ khóa khác
+            </Typography>
+          </Box>
         </Paper>
       ) : (
         <TableContainer component={Paper}>
@@ -281,7 +352,7 @@ const Rentals = () => {
 
             </TableHead>
             <TableBody>
-              {rentals.map((rental) => (
+              {filteredRentals.map((rental) => (
                 <TableRow key={rental.id}>
                   <TableCell sx={{textAlign: 'center'}}>{rental.orderCode}</TableCell>
                   <TableCell sx={{textAlign: 'center'}}>{rental.customerName}</TableCell>
@@ -325,7 +396,7 @@ const Rentals = () => {
                   <TableCell>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <Select
-                        value={rental.status}
+                        value={rental.status === 'pending_payment' ? 'pending' : rental.status}
                         onChange={(e) => handleStatusChange(rental.id, e.target.value)}
                         sx={{
                           '& .MuiSelect-select': {
@@ -370,17 +441,48 @@ const Rentals = () => {
       >
         <DialogContent sx={{ p: 1 }}>
           {selectedImage && (
-            <img
-              src={selectedImage}
-              alt="CCCD"
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
+            <Box sx={{ position: 'relative' }}>
+              <img
+                src={selectedImage}
+                alt="CCCD"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: '4px'
+                }}
+              />
+              <IconButton
+                onClick={handleCloseImage}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  bgcolor: 'rgba(0,0,0,0.5)',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'rgba(0,0,0,0.7)'
+                  }
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Xác nhận xóa đơn thuê</DialogTitle>
+        <DialogContent>
+          Bạn có chắc muốn xóa đơn thuê này? Hành động này không thể hoàn tác.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Hủy</Button>
+          <Button onClick={confirmDelete} color="error">
+            Xóa
+          </Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );

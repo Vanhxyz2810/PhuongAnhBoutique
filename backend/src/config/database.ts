@@ -3,7 +3,9 @@ import { Rental } from "../models/Rental";
 import { Clothes } from "../models/Clothes";
 import { User } from '../models/User';
 import { Session } from '../models/Session';
+import { Category } from '../models/Category';
 import dotenv from 'dotenv';
+import { seedCategories } from '../seeders/categorySeeder';
 
 dotenv.config();
 
@@ -21,7 +23,7 @@ const dbConfig = {
   } : false,  // Tắt SSL khi chạy local
   synchronize: true,
   logging: true,
-  entities: [Clothes, Rental, User, Session],
+  entities: [Clothes, Rental, User, Session, Category],
   migrations: [],
   subscribers: []
 };
@@ -38,6 +40,9 @@ export const connectDB = async () => {
     console.log('Database connection test:', testQuery);
     
     console.log("✅ Database connected successfully");
+    
+    // Chạy seeders
+    await seedCategories();
     
     // Log số lượng records trong các bảng
     const usersCount = await AppDataSource.getRepository(User).count();

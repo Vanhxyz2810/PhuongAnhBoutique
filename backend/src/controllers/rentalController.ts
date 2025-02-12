@@ -8,6 +8,7 @@ import { generateOrderCode } from '../utils/orderCode';
 import { AuthRequest } from '../types';
 import payos from '../config/payos';
 import { Not, In } from 'typeorm';
+import { uploadToCloudinary } from '../middleware/uploadToCloud';
 
 const rentalRepository = AppDataSource.getRepository(Rental);
 const clothesRepository = AppDataSource.getRepository(Clothes);
@@ -60,9 +61,20 @@ export default {
         return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
       }
 
+      // Upload CCCD to Cloudinary if provided
+      let identityCardUrl = '';
+      if (file) {
+        try {
+          identityCardUrl = await uploadToCloudinary(file, 'identity_cards');
+        } catch (error) {
+          console.error('Cloudinary upload error:', error);
+          return res.status(500).json({ message: 'Lỗi khi tải lên CCCD' });
+        }
+      }
+
       // Tạo mã đơn hàng
       const orderCode = generateOrderCode();
-
+      
       // Tạo URL thanh toán PayOS
       const amount = Number(rentalData.totalAmount);
 
@@ -100,10 +112,11 @@ export default {
         rentDate: new Date(rentalData.rentDate),
         returnDate: new Date(rentalData.returnDate),
         totalAmount: amount,
-        identityCard: file ? `/uploads/identity/${file.filename}` : '',
+        identityCard: identityCardUrl,
         status: rentalData.paymentMethod === 'cash' ? RentalStatus.PENDING : RentalStatus.PENDING_PAYMENT,
         paymentMethod: rentalData.paymentMethod,
         pickupTime: rentalData.pickupTime,
+        pendingExpireAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
       };
 
       const rental = rentalRepository.create(tempRentalData);
@@ -139,37 +152,35 @@ export default {
     }
   },
 
-  getAll: (async (_req, res) => {
+  getAll: async (req: Request, res: Response) => {
     try {
       const rentals = await rentalRepository.find({
         relations: ['clothes'],
-        order: { createdAt: 'DESC' }
+        select: {
+          id: true,
+          orderCode: true,
+          customerName: true,
+          phone: true,
+          rentDate: true,
+          returnDate: true,
+          totalAmount: true,
+          status: true,
+          identityCard: true,
+          clothes: {
+            id: true,
+            name: true,
+            image: true
+          }
+        }
       });
 
-      // Format lại dữ liệu trước khi gửi về client
-      const formattedRentals = rentals.map(rental => ({
-        id: rental.id,
-        orderCode: rental.orderCode,
-        customerName: rental.customerName,
-        phone: rental.phone,
-        totalAmount: rental.totalAmount,
-        rentDate: rental.rentDate,
-        returnDate: rental.returnDate,
-        status: rental.status,
-        clothes: {
-          id: rental.clothes.id,
-          name: rental.clothes.name,
-          images: [rental.clothes.image]
-        }
-      }));
-
-      console.log('Fetched rentals:', formattedRentals);
-      res.json(formattedRentals);
+      console.log('Rentals with identity cards:', rentals);
+      res.json(rentals);
     } catch (error) {
-      console.error('Error fetching rentals:', error);
+      console.error('Error getting rentals:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
-  }) as RequestHandler,
+  },
 
   updateStatus: (async (req, res) => {
     try {
@@ -520,6 +531,54 @@ export default {
     } catch (error) {
       console.error('Error getting rental dates:', error);
       return res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  // Thêm endpoint xử lý feedback
+  submitFeedback: async (req: Request, res: Response) => {
+    try {
+      const { orderId, rating, message, images } = req.body;
+
+      const rental = await rentalRepository.findOne({
+        where: { id: orderId }
+      });
+
+      if (!rental) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      if (rental.hasFeedback) {
+        return res.status(400).json({ message: 'Đơn hàng đã được đánh giá' });
+      }
+
+      // Cập nhật feedback
+      await rentalRepository.update(orderId, {
+        hasFeedback: true,
+        rating,
+        feedbackMessage: message,
+        feedbackImages: images,
+        feedbackAt: new Date()
+      });
+
+      res.json({ message: 'Cảm ơn bạn đã gửi đánh giá!' });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  // Thêm endpoint lấy tất cả feedback cho admin
+  getAllFeedbacks: async (_req: Request, res: Response) => {
+    try {
+      const feedbacks = await rentalRepository.find({
+        where: { hasFeedback: true },
+        relations: ['clothes'],
+        order: { feedbackAt: 'DESC' }
+      });
+      res.json(feedbacks);
+    } catch (error) {
+      console.error('Error getting feedbacks:', error);
+      res.status(500).json({ message: 'Lỗi server' });
     }
   },
 }; 

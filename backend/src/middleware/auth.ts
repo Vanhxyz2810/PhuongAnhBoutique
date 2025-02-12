@@ -1,27 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthRequest } from '../types';
 
-export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
+interface AuthRequest extends Request {
+  user?: any;
+}
+
+export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.header('Authorization');
     
-    if (!token) {
+    if (!authHeader) {
       return res.status(401).json({ message: 'Không tìm thấy token' });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
+    const token = authHeader.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Token không hợp lệ' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    req.user = decoded;
+    
     next();
   } catch (error) {
-    console.error('Auth Middleware Error:', error);
-    res.status(401).json({ message: 'Token không hợp lệ' });
+    console.error('Auth error:', error);
+    res.status(401).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
   }
-
-  
 }; 
 

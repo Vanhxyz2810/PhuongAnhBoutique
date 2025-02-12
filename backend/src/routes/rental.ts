@@ -24,5 +24,7 @@ router.post('/webhook', rentalController.handlePaymentWebhook);
 router.post('/updatePayment/:orderCode', rentalController.updatePayment);
 router.put('/:id/status', checkRole(['admin']) as RequestHandler, rentalController.updateStatus as RequestHandler);
 router.delete('/:id', checkRole(['admin']) as RequestHandler, rentalController.deleteRental as RequestHandler);
+router.post('/feedback', rentalController.submitFeedback);
+router.get('/feedbacks', checkRole(['admin']) as RequestHandler, rentalController.getAllFeedbacks as RequestHandler);
 
 export default router; 

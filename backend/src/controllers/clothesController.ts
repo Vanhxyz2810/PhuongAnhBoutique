@@ -6,8 +6,11 @@ import path from 'path';
 import { MulterRequest } from '../config/multer';
 import { Rental } from '../models/Rental';
 import { uploadToCloudinary } from '../middleware/uploadToCloud';
+import { Category } from '../models/Category';
+import { seedCategories } from '../seeders/categorySeeder';
 
 const clothesRepository = AppDataSource.getRepository(Clothes);
+const categoryRepository = AppDataSource.getRepository(Category);
 
 export default {
   getAll: (async (_req, res) => {
@@ -54,48 +57,35 @@ export default {
     }
   }) as RequestHandler,
 
-  update: (async (req: MulterRequest, res) => {
+  update: (async (req: MulterRequest, res: Response) => {
     try {
-      const clothes = await clothesRepository.findOne({
-        where: { id: req.params.id }
-      });
+      const clothesData = req.body;
+      const { id } = req.params;
 
+      const clothes = await clothesRepository.findOne({ where: { id } });
       if (!clothes) {
         return res.status(404).json({ message: 'Không tìm thấy' });
       }
 
+      // Cập nhật các trường thông tin
+      clothes.name = clothesData.name;
+      clothes.ownerName = clothesData.ownerName;
+      clothes.rentalPrice = Number(clothesData.rentalPrice);
+      clothes.description = clothesData.description;
+      clothes.status = clothesData.status;
+      clothes.category = clothesData.category;
+
       if (req.file) {
-        // Xóa ảnh cũ
-        const oldImagePath = path.join(__dirname, '../../uploads', path.basename(clothes.image));
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
+        const imageUrl = await uploadToCloudinary(req.file);
+        clothes.image = imageUrl;
       }
 
-      const updateData = {
-        name: req.body.name,
-        ownerName: req.body.ownerName,
-        rentalPrice: Number(req.body.rentalPrice),
-        description: req.body.description,
-        status: req.body.status,
-        ...(req.file && { image: `/uploads/clothes/${req.file.filename}` })
-      };
+      await clothesRepository.save(clothes);
+      res.json(clothes);
 
-      // Thêm logic xử lý Cloudinary cho production
-      if (process.env.NODE_ENV === 'production' && req.file) {
-        const cloudinaryUrl = await uploadToCloudinary(req.file);
-        updateData.image = cloudinaryUrl;
-      }
-
-      await clothesRepository.update(req.params.id, updateData);
-
-      const updatedClothes = await clothesRepository.findOne({
-        where: { id: req.params.id }
-      });
-
-      res.json(updatedClothes);
     } catch (error) {
-      res.status(400).json({ message: 'Lỗi khi cập nhật' });
+      console.error('Error updating clothes:', error);
+      res.status(500).json({ message: 'Lỗi server' });
     }
   }) as RequestHandler,
 
@@ -173,5 +163,55 @@ export default {
       console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
-  }) as RequestHandler
+  }) as RequestHandler,
+
+  getAllCategories: async (_req: Request, res: Response) => {
+    try {
+      console.log('Fetching categories...');
+      const categories = await categoryRepository.find({
+        where: { isActive: true },
+        order: { name: 'ASC' }
+      });
+      console.log('Found categories:', categories);
+      
+      if (categories.length === 0) {
+        console.log('No categories found, running seeder...');
+        await seedCategories();
+        const newCategories = await categoryRepository.find({
+          where: { isActive: true },
+          order: { name: 'ASC' }
+        });
+        return res.json(newCategories);
+      }
+      
+      res.json(categories);
+    } catch (error) {
+      console.error('Error getting categories:', error);
+      res.status(500).json({ 
+        message: 'Lỗi server',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  createCategory: async (req: Request, res: Response) => {
+    try {
+      const { name } = req.body;
+      const category = categoryRepository.create({ name });
+      await categoryRepository.save(category);
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  deleteCategory: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await categoryRepository.update(id, { isActive: false });
+      res.json({ message: 'Đã xóa danh mục' });
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  }
 };

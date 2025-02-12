@@ -10,7 +10,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Typography
+  Typography,
+  MenuItem
 } from '@mui/material';
 import { 
   Home,
@@ -20,7 +21,8 @@ import {
   Assessment,
   Menu,
   ShoppingBag,
-  ExitToApp
+  ExitToApp,
+  Feedback
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -50,8 +52,17 @@ const Header = () => {
       { text: 'Khách Hàng', icon: <People />, path: '/customers' },
       { text: 'Đơn Thuê', icon: <Receipt />, path: '/rentals' },
       { text: 'Doanh Thu', icon: <Assessment />, path: '/revenue' },
+      { text: 'Feedback', icon: <Feedback />, path: '/feedbacks' }
     ] : [])
   ];
+
+  // const adminMenuItems = [
+  //   { text: 'Trang phục', path: '/clothes', icon: <Checkroom /> },
+  //   { text: 'Đơn thuê', path: '/rentals', icon: <Receipt /> },
+  //   { text: 'Khách hàng', path: '/customers', icon: <People /> },
+  //   { text: 'Doanh thu', path: '/revenue', icon: <Assessment /> },
+  //   { text: 'Đánh giá', path: '/feedbacks', icon: <Feedback /> }
+  // ];
 
   return (
     <Box sx={{ position: 'sticky', top: 0, zIndex: 1100 }}>
@@ -246,6 +257,8 @@ const Header = () => {
                 </>
               )}
             </Box>
+
+            
           </Toolbar>
         </Container>
       </AppBar>
@@ -310,6 +323,7 @@ const Header = () => {
               />
             </ListItem>
           ))}
+          
         </List>
 
         {/* Đăng nhập/Đăng xuất ở cuối drawer */}

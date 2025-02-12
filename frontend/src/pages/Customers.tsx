@@ -23,7 +23,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../utils/axios';
 import { AxiosError } from 'axios';
-
+import { enqueueSnackbar } from 'notistack';
+import { useSnackbar } from 'notistack';
 interface ClothesItem {
   id: string;
   name: string;
@@ -118,7 +119,7 @@ const Customers = () => {
       });
 
       if (response.data) {
-        alert('Tạo đơn thuê thành công!');
+        enqueueSnackbar('Tạo đơn thuê thành công!', { variant: 'success' });
         setCustomerName('');
         setPhone('');
         setIdentityCard(null);
@@ -132,9 +133,9 @@ const Customers = () => {
       console.error('Rental creation error:', error);
       if (error instanceof AxiosError) {
         // Hiển thị message từ server nếu có
-        alert(error.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê');
+        enqueueSnackbar(error.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê', { variant: 'error' });
       } else {
-        alert('Có lỗi xảy ra khi tạo đơn thuê');
+        enqueueSnackbar('Có lỗi xảy ra khi tạo đơn thuê', { variant: 'error' });
       }
     }
   };

@@ -9,6 +9,7 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
+    "@base-ui-components/react": "^1.0.0-alpha.6",
     "@payos/node": "^1.0.10",
     "@payos/payos-checkout": "^1.0.8",
     "cloudinary": "^2.5.1",

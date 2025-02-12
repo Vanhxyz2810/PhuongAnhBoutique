@@ -30,7 +30,7 @@ export class Rental {
     type: 'varchar',
     nullable: true
   })
-  identityCard!: string;
+  identityCard: string;
 
   @Column({ type: 'timestamp' })
   rentDate: Date;
@@ -101,4 +101,33 @@ export class Rental {
 
   @Column({ type: 'time', nullable: true })
   pickupTime!: string;
+
+  @Column({
+    type: 'boolean',
+    default: false
+  })
+  hasFeedback: boolean;
+
+  @Column({
+    type: 'integer',
+    nullable: true
+  })
+  rating: number;
+
+  @Column({
+    type: 'text',
+    nullable: true
+  })
+  feedbackMessage: string;
+
+  @Column('simple-array', {
+    nullable: true
+  })
+  feedbackImages: string[];
+
+  @Column({ 
+    type: 'timestamp', 
+    nullable: true 
+  })
+  feedbackAt: Date;
 } 

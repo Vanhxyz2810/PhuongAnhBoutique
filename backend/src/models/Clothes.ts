@@ -32,6 +32,9 @@ export class Clothes {
   })
   status!: string;
 
+  @Column({ nullable: true })
+  category: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
 

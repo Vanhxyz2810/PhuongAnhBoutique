@@ -26,15 +26,18 @@ import {
 } from '@mui/material';
 import { Edit, Delete, CloudUpload } from '@mui/icons-material';
 import axiosInstance from '../utils/axios';
+import AddIcon from '@mui/icons-material/Add';
+import { useSnackbar } from 'notistack';
 
 interface Clothes {
   id: string;
   name: string;
   ownerName: string;
   rentalPrice: number;
+  description: string;
   status: 'available' | 'rented';
+  category: string;
   image: string;
-  description?: string;
 }
 
 interface FormData {
@@ -43,6 +46,12 @@ interface FormData {
   rentalPrice: string;
   description: string;
   status: 'available' | 'rented';
+  category: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
 }
 
 const API_URL = import.meta.env.VITE_API_URL + '/clothes';
@@ -55,15 +64,21 @@ const Clothes = () => {
     ownerName: '',
     rentalPrice: '',
     description: '',
-    status: 'available'
+    status: 'available',
+    category: ''
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fetch data when component mounts
   useEffect(() => {
     fetchClothes();
+    fetchCategories();
   }, []);
 
   const fetchClothes = async () => {
@@ -72,6 +87,15 @@ const Clothes = () => {
       setClothes(response.data);
     } catch (error) {
       console.error('Error fetching clothes:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axiosInstance.get('/clothes/categories/all');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
 
@@ -87,76 +111,77 @@ const Clothes = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      // Validate form
-      if (!formData.name || !formData.ownerName || !formData.rentalPrice) {
-        alert('Vui lòng điền đầy đủ thông tin');
-        return;
-      }
-      
-      if (!editingId && !imagePreview) {
-        alert('Vui lòng chọn ảnh');
-        return;
-      }
-
-      // Validate giá thuê
-      const price = Number(formData.rentalPrice);
-      if (isNaN(price) || price <= 0) {
-        alert('Giá thuê không hợp lệ');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        enqueueSnackbar('Không tìm thấy token', { variant: 'error' });
         return;
       }
 
       const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name.trim());
-      formDataToSend.append('ownerName', formData.ownerName.trim());
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('ownerName', formData.ownerName);
       formDataToSend.append('rentalPrice', formData.rentalPrice);
       formDataToSend.append('description', formData.description || '');
       formDataToSend.append('status', formData.status);
-      
+      formDataToSend.append('category', formData.category);
+
       if (fileInputRef.current?.files?.[0]) {
-        const file = fileInputRef.current.files[0];
-        // Validate kích thước file (ví dụ: max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('Kích thước ảnh không được vượt quá 5MB');
-          return;
+        formDataToSend.append('image', fileInputRef.current.files[0]);
+      }
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
         }
-        formDataToSend.append('image', file);
+      };
+
+      if (!formData.name || !formData.ownerName || !formData.rentalPrice) {
+        enqueueSnackbar('Vui lòng điền đầy đủ thông tin', { variant: 'warning' });
+        return;
+      }
+
+      if (!editingId && !imagePreview) {
+        enqueueSnackbar('Vui lòng chọn ảnh', { variant: 'warning' });
+        return;
       }
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, formDataToSend);
+        await axiosInstance.put(`/clothes/${editingId}`, formDataToSend, config);
       } else {
-        await axios.post(API_URL, formDataToSend);
+        await axiosInstance.post('/clothes', formDataToSend, config);
       }
 
-      await fetchClothes();
+      fetchClothes(); // Refresh danh sách
       setOpen(false);
       setEditingId(null);
-      setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available' });
+      setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available', category: '' });
       setImagePreview(null);
-      alert(editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
-
-    } catch (error: unknown) {
-      const err = error as AxiosError;
-      console.error('Error details:', err);
-      
-      // Xử lý các trường hợp lỗi cụ thể
-      if (err.response?.status === 500) {
-        alert('Có lỗi xảy ra từ hệ thống. Vui lòng thử lại sau hoặc liên hệ admin.');
+      enqueueSnackbar(
+        editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!', 
+        { variant: 'success' }
+      );
+    } catch (error) {
+      console.error('Error details:', error);
+      if (error instanceof Error) {
+        enqueueSnackbar(`Lỗi: ${error.message}`, { variant: 'error' });
       } else {
-        const errorMessage = (err.response?.data as { message: string })?.message || 'Có lỗi xảy ra khi lưu dữ liệu';
-        alert(errorMessage);
+        enqueueSnackbar('Có lỗi xảy ra', { variant: 'error' });
       }
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
-      fetchClothes(); // Refresh data
+      await axiosInstance.delete(`/clothes/${id}`);
+      fetchClothes();
+      enqueueSnackbar('Xóa thành công!', { variant: 'success' });
     } catch (error) {
-      console.error('Error deleting clothes:', error);
+      console.error('Error:', error);
+      enqueueSnackbar('Lỗi khi xóa sản phẩm', { variant: 'error' });
     }
   };
 
@@ -167,7 +192,8 @@ const Clothes = () => {
       ownerName: item.ownerName,
       rentalPrice: item.rentalPrice.toString(),
       description: item.description || '',
-      status: item.status
+      status: item.status,
+      category: item.category || ''
     });
     setOpen(true);
   };
@@ -212,16 +238,39 @@ const Clothes = () => {
     }
   };
 
+  const handleAddCategory = async () => {
+    try {
+      const response = await axiosInstance.post('/clothes/categories', { name: newCategory });
+      setCategories([...categories, response.data]);
+      setNewCategory('');
+      setShowAddCategory(false);
+      enqueueSnackbar('Thêm danh mục thành công!', { variant: 'success' });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      enqueueSnackbar('Lỗi khi thêm danh mục', { variant: 'error' });
+    }
+  };
+
   return (
     <Container>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3}}>
         <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Quản Lý Quần Áo</Typography>
         <Box>
+
+
           {/* Thêm button test */}
+          <Button
+            onClick={() => setShowAddCategory(true)}
+            startIcon={<AddIcon />}
+            sx={{ mt: 1 }}
+          >
+            Thêm danh mục mới
+          </Button>
           <Button 
             variant="outlined"
             onClick={handleCreateTestData}
             sx={{ 
+              mt: 1,
               mr: 2,
               color: '#FF1493',
               borderColor: '#FF1493',
@@ -237,6 +286,7 @@ const Clothes = () => {
             variant="contained"
             onClick={() => setOpen(true)}
             sx={{
+              mt: 1,
               bgcolor: '#FF1493',
               '&:hover': {
                 bgcolor: '#FF69B4'
@@ -276,6 +326,7 @@ const Clothes = () => {
               <TableCell width="15%" align="center">Giá Thuê</TableCell>
               <TableCell width="15%" align="center">Ảnh</TableCell>
               <TableCell width="15%" align="center">Tình Trạng</TableCell>
+              <TableCell width="45%" align="center">Danh mục</TableCell>
               <TableCell width="15%" align="center">Thao Tác</TableCell>
             </TableRow>
           </TableHead>
@@ -304,6 +355,7 @@ const Clothes = () => {
                     size="small"
                   />
                 </TableCell>
+                <TableCell align="center">{item.category || 'Chưa phân loại'}</TableCell>
                 <TableCell align="center">
                   <IconButton 
                     onClick={() => handleEdit(item)}
@@ -423,13 +475,26 @@ const Clothes = () => {
                   <MenuItem value="rented">Đang thuê</MenuItem>
                 </Select>
               </FormControl>
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Danh mục</InputLabel>
+                <Select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  {categories.map((cat) => (
+                    <MenuItem key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => {
               setOpen(false);
               setEditingId(null);
-              setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available' });
+              setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available', category: '' });
             }}>Hủy</Button>
             <Button 
               variant="contained" 
@@ -446,6 +511,8 @@ const Clothes = () => {
           </DialogActions>
         </Dialog>
       </Box>
+
+      
     </Container>
   );
 };

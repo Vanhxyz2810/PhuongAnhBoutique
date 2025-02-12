@@ -13,6 +13,7 @@ import { User } from './models/User';
 import bcrypt from 'bcrypt';
 import { AppDataSource } from './config/database';
 import helmet from 'helmet';
+import uploadRouter from './routes/upload';
 // import morgan from 'morgan';
 
 dotenv.config();
@@ -92,6 +93,7 @@ connectDB().then(async () => {
   app.use('/api/clothes', router);
   app.use('/api/rentals', rentalRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/upload', uploadRouter);
   app.get('/api/clothes/:id', clothesController.getClothesById);
 
   app.listen(port, () => {
