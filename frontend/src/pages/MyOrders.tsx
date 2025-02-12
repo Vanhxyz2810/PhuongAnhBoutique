@@ -16,7 +16,7 @@ import {
   FormControl,
   Select,
   MenuItem,
-  Stack
+  Stack,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -102,7 +102,8 @@ const MyOrders = () => {
       setOrders(response.data);
       
       enqueueSnackbar('Cảm ơn bạn đã gửi feedback! Bạn sẽ được giảm 10k cho lần thuê sau 🎉', {
-        variant: 'success'
+        variant: 'success',
+        autoHideDuration: 3000
       });
       setFeedbackModalOpen(false);
     } catch (error) {
