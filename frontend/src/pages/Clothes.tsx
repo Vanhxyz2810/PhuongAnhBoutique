@@ -22,12 +22,17 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Container
+  Container,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { Edit, Delete, CloudUpload } from '@mui/icons-material';
 import axiosInstance from '../utils/axios';
 import AddIcon from '@mui/icons-material/Add';
 import { useSnackbar } from 'notistack';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 
 interface Clothes {
   id: string;
@@ -38,6 +43,7 @@ interface Clothes {
   status: 'available' | 'rented';
   category: string;
   image: string;
+  isPinned: boolean;
 }
 
 interface FormData {
@@ -68,11 +74,13 @@ const Clothes = () => {
     category: ''
   });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{id: number, name: string} | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const { enqueueSnackbar } = useSnackbar();
 
   // Fetch data when component mounts
@@ -100,26 +108,20 @@ const Clothes = () => {
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Preview image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = event.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      setImageFiles(fileArray);
+      
+      // Tạo previews
+      const previewUrls = fileArray.map(file => URL.createObjectURL(file));
+      setImagePreviews(previewUrls);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        enqueueSnackbar('Không tìm thấy token', { variant: 'error' });
-        return;
-      }
-
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('ownerName', formData.ownerName);
@@ -128,24 +130,21 @@ const Clothes = () => {
       formDataToSend.append('status', formData.status);
       formDataToSend.append('category', formData.category);
 
-      if (fileInputRef.current?.files?.[0]) {
-        formDataToSend.append('image', fileInputRef.current.files[0]);
+      // Append multiple images
+      if (imageFiles.length > 0) {
+        imageFiles.forEach(file => {
+          formDataToSend.append('images', file);
+        });
       }
 
       const config = {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       };
 
       if (!formData.name || !formData.ownerName || !formData.rentalPrice) {
         enqueueSnackbar('Vui lòng điền đầy đủ thông tin', { variant: 'warning' });
-        return;
-      }
-
-      if (!editingId && !imagePreview) {
-        enqueueSnackbar('Vui lòng chọn ảnh', { variant: 'warning' });
         return;
       }
 
@@ -159,18 +158,15 @@ const Clothes = () => {
       setOpen(false);
       setEditingId(null);
       setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available', category: '' });
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       enqueueSnackbar(
         editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!', 
         { variant: 'success' }
       );
     } catch (error) {
       console.error('Error details:', error);
-      if (error instanceof Error) {
-        enqueueSnackbar(`Lỗi: ${error.message}`, { variant: 'error' });
-      } else {
-        enqueueSnackbar('Có lỗi xảy ra', { variant: 'error' });
-      }
+      enqueueSnackbar('Có lỗi xảy ra khi lưu', { variant: 'error' });
     }
   };
 
@@ -240,14 +236,66 @@ const Clothes = () => {
 
   const handleAddCategory = async () => {
     try {
-      const response = await axiosInstance.post('/clothes/categories', { name: newCategory });
+      console.log('Attempting to add category:', newCategoryName);
+      
+      // Kiểm tra trùng tên
+      const duplicate = categories.find(cat => 
+        cat.name.toLowerCase() === newCategoryName.toLowerCase()
+      );
+      
+      if (duplicate) {
+        console.log('Duplicate category found:', duplicate);
+        enqueueSnackbar('Danh mục không được trùng tên', { variant: 'warning' });
+        return;
+      }
+
+      const response = await axiosInstance.post('/clothes/categories', { 
+        name: newCategoryName 
+      });
+      console.log('Category creation response:', response.data);
+
       setCategories([...categories, response.data]);
-      setNewCategory('');
-      setShowAddCategory(false);
-      enqueueSnackbar('Thêm danh mục thành công!', { variant: 'success' });
-    } catch (error) {
+      setNewCategoryName('');
+      setCategoryDialogOpen(false);
+      enqueueSnackbar('Thêm danh mục thành công', { variant: 'success' });
+    } catch (error: any) {
       console.error('Error adding category:', error);
-      enqueueSnackbar('Lỗi khi thêm danh mục', { variant: 'error' });
+      console.error('Error response:', error.response?.data);
+      
+      if (error.response?.status === 400) {
+        enqueueSnackbar(error.response.data.message, { variant: 'warning' });
+      } else {
+        enqueueSnackbar('Lỗi khi thêm danh mục', { variant: 'error' });
+      }
+    }
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return;
+    try {
+      await axiosInstance.put(`/clothes/categories/${editingCategory.id}`, {
+        name: newCategoryName
+      });
+      const updatedCategories = categories.map(cat => 
+        cat.id === editingCategory.id ? {...cat, name: newCategoryName} : cat
+      );
+      setCategories(updatedCategories);
+      setNewCategoryName('');
+      setEditingCategory(null);
+      setCategoryDialogOpen(false);
+      enqueueSnackbar('Cập nhật danh mục thành công', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar('Lỗi khi cập nhật danh mục', { variant: 'error' });
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await axiosInstance.delete(`/clothes/categories/${id}`);
+      setCategories(categories.filter(cat => cat.id !== id));
+      enqueueSnackbar('Xóa danh mục thành công', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar('Lỗi khi xóa danh mục', { variant: 'error' });
     }
   };
 
@@ -256,13 +304,20 @@ const Clothes = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3}}>
         <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Quản Lý Quần Áo</Typography>
         <Box>
-
-
           {/* Thêm button test */}
           <Button
-            onClick={() => setShowAddCategory(true)}
-            startIcon={<AddIcon />}
-            sx={{ mt: 1 }}
+            variant="outlined"
+            onClick={() => setCategoryDialogOpen(true)}
+            sx={{
+              mt: 1,
+              mr: 2,
+              color: '#FF1493',
+              borderColor: '#FF1493',
+              '&:hover': {
+                borderColor: '#FF69B4',
+                backgroundColor: 'rgba(255,20,147,0.04)'
+              }
+            }}
           >
             Thêm danh mục mới
           </Button>
@@ -378,6 +433,30 @@ const Clothes = () => {
                   >
                     <Delete fontSize="small" />
                   </IconButton>
+                  <IconButton 
+                  sx={{ 
+                    color: '#FF69B4',
+                    '&:hover': { 
+                      backgroundColor: '#FFF0F5',
+                      color: '#FF1493'
+                    }
+                  }}
+                    onClick={async () => {
+                      try {
+                        await axiosInstance.patch(`/clothes/${item.id}/toggle-pin`);
+                        fetchClothes();
+                        enqueueSnackbar(
+                          item.isPinned ? 'Đã bỏ ghim sản phẩm' : 'Đã ghim sản phẩm',
+                          { variant: 'success' }
+                        );
+                      } catch (error) {
+                        console.error('Error toggling pin:', error);
+                        enqueueSnackbar('Lỗi khi thực hiện thao tác', { variant: 'error' });
+                      }
+                    }}
+                  >
+                    {item.isPinned ? <PushPinIcon /> : <PushPinOutlinedIcon />}
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -405,37 +484,34 @@ const Clothes = () => {
           <DialogContent>
             <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Image Upload */}
-              <Box
-                sx={{
-                  border: '2px dashed #FF8DC7',
-                  borderRadius: 2,
-                  p: 2,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: '#FFF0F5' }
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {imagePreview ? (
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    style={{ maxHeight: 200, maxWidth: '100%', objectFit: 'contain' }} 
-                  />
-                ) : (
-                  <>
-                    <CloudUpload sx={{ fontSize: 40, color: '#FF8DC7', mb: 1 }} />
-                    <Typography>Click để tải ảnh lên</Typography>
-                  </>
-                )}
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <input
-                  type="file"
-                  hidden
-                  ref={fileInputRef}
                   accept="image/*"
+                  style={{ display: 'none' }}
+                  id="raised-button-file"
+                  multiple
+                  type="file"
                   onChange={handleImageChange}
                 />
-              </Box>
+                <label htmlFor="raised-button-file">
+                  <Button variant="outlined" component="span" fullWidth>
+                    Chọn ảnh
+                  </Button>
+                </label>
+              </FormControl>
+
+              {imagePreviews.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                  {imagePreviews.map((preview, index) => (
+                    <img 
+                      key={index}
+                      src={preview}
+                      alt={`preview ${index}`}
+                      style={{ width: 100, height: 100, objectFit: 'cover' }}
+                    />
+                  ))}
+                </Box>
+              )}
 
               {/* Existing form fields */}
               <TextField
@@ -503,7 +579,7 @@ const Clothes = () => {
                 !formData.name || 
                 !formData.ownerName || 
                 !formData.rentalPrice || 
-                (!editingId && !imagePreview)
+                (imageFiles.length === 0)
               }
             >
               {editingId ? 'Cập Nhật' : 'Lưu'}
@@ -512,7 +588,74 @@ const Clothes = () => {
         </Dialog>
       </Box>
 
-      
+      <Dialog open={categoryDialogOpen} onClose={() => {
+        setCategoryDialogOpen(false);
+        setEditingCategory(null);
+        setNewCategoryName('');
+      }}>
+        <DialogTitle>
+          {editingCategory ? 'Sửa danh mục' : 'Thêm danh mục mới'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              autoFocus
+              fullWidth
+              label="Tên danh mục"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+          </Box>
+          {!editingCategory && (
+            <List sx={{ mt: 2 }}>
+              {categories.map((category) => (
+                <ListItem
+                  key={category.id}
+                  secondaryAction={
+                    <Box>
+                      <IconButton 
+                        edge="end" 
+                        onClick={() => {
+                          setEditingCategory(category);
+                          setNewCategoryName(category.name);
+                        }}
+                        sx={{ color: 'primary.main', mr: 1 }}
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton 
+                        edge="end" 
+                        onClick={() => handleDeleteCategory(category.id)}
+                        sx={{ color: 'error.main' }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
+                  }
+                >
+                  <ListItemText primary={category.name} />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setCategoryDialogOpen(false);
+            setEditingCategory(null);
+            setNewCategoryName('');
+          }}>
+            Hủy
+          </Button>
+          <Button 
+            onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
+            variant="contained"
+            disabled={!newCategoryName.trim()}
+          >
+            {editingCategory ? 'Cập nhật' : 'Thêm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

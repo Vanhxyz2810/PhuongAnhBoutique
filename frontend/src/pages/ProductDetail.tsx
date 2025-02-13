@@ -72,7 +72,8 @@ interface Product {
   name: string;
   price: number;
   originalPrice: number;
-  images: string[];  // Array of image filenames
+  images: string[];
+  image: string;
   sizes: string[];
   description: string;
   sku: string;
@@ -124,7 +125,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState('');
   const [openRentalForm, setOpenRentalForm] = useState(false);
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
@@ -296,6 +297,14 @@ const ProductDetail = () => {
     }));
   }, []);
 
+  useEffect(() => {
+    if (product?.images && product.images.length > 0) {
+      setSelectedImage(product.images[0]);
+    } else if (product?.image) {
+      setSelectedImage(product.image);
+    }
+  }, [product]);
+
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <Typography>Đang tải...</Typography>
@@ -429,63 +438,68 @@ const ProductDetail = () => {
           <Grid item xs={12} md={7}>
             <Box
               sx={{
-                position: 'relative',
                 width: '100%',
-                height: { xs: '300px', md: '600px' },
+                height: { xs: '300px', sm: '400px', md: '500px' },
+                position: 'relative',
+                mb: 2,
                 borderRadius: 2,
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                mb: 2
+                overflow: 'hidden'
               }}
             >
               <img
-                src={product.images[selectedImage]}
-                alt={product.name}
+                src={selectedImage || product?.image || ''}
+                alt={product?.name || 'Product image'}
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'contain',
-                  display: 'block'
+                  backgroundColor: '#f5f5f5'
                 }}
               />
             </Box>
 
             {/* Thumbnails */}
-            <Box sx={{ 
-              display: 'flex',
-              gap: 2,
-              justifyContent: 'center',
-              mt: 2 
-            }}>
-              {product.images.map((image, index) => (
-                <Box
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: selectedImage === index ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-                    '&:hover': {
-                      opacity: 0.8
-                    }
-                  }}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} thumbnail ${index + 1}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block'
+            {product?.images && product.images.length > 0 && (
+              <Box 
+                sx={{ 
+                  display: 'flex',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  justifyContent: { xs: 'center', sm: 'flex-start' },
+                  mt: 2 
+                }}
+              >
+                {product.images.map((img, index) => (
+                  <Box
+                    key={index}
+                    onClick={() => setSelectedImage(img)}
+                    sx={{
+                      width: { xs: 60, sm: 80 },
+                      height: { xs: 60, sm: 80 },
+                      cursor: 'pointer',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      border: selectedImage === img ? '2px solid #FF1493' : '1px solid #ddd',
+                      '&:hover': {
+                        opacity: 0.8,
+                        border: '2px solid #FF1493'
+                      }
                     }}
-                  />
-                </Box>
-              ))}
-            </Box>
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Grid>
 
           {/* Phần thông tin - bên phải */}
@@ -626,7 +640,7 @@ const ProductDetail = () => {
             {/* Thông tin thêm */}
             <Box>
               {/* Thông tin sản phẩm */}
-              <Box sx={{ mb: 4 }}>
+              <Box sx={{ mb: 1 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>Thông tin sản phẩm</Typography>
                 <Typography>{product.description}</Typography>
               </Box>
@@ -687,17 +701,16 @@ const ProductDetail = () => {
         {/* Phần chính sách và liên hệ */}
         <Grid container spacing={4}>
           {/* Chính sách đổi trả */}
-          <Grid item xs={12} md={6} sx={{ textAlign: 'left' }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Chính sách đổi trả hàng</Typography>
+          <Grid item xs={12} mt={2} md={6} sx={{ textAlign: 'left' }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Quy định thuê đồ - PA Boutique</Typography>
             <Box component="ul" sx={{ pl: 2 }}>
-              <Typography component="li">Không hỗ trợ kiểm tra hàng</Typography>
-              <Typography component="li">Đổi trả trong vòng 3 ngày kể từ khi nhận hàng</Typography>
-              <Typography component="li">
-                Nếu sản phẩm lỗi hoặc ship sai - Vui lòng gửi hàng đổi trả tại địa chỉ{' '}
-                <Typography component="span" sx={{ fontWeight: 'bold' }}>
-                  158 HUỲNH VĂN BÁNH F.12 Q.PHÚ NHUẬN
-                </Typography>
-              </Typography>
+              <Typography component="li">❗️Khách vui lòng điền <b>thông tin</b> đầy đủ:
+               <b> SĐT</b> + <b>Ảnh CCCD</b> + <b>Tên</b></Typography>
+              <Typography component="li">⏳Khách <b>lấy và trả</b> đúng hẹn. Trả muộn shop tính phí. Trùng lịch thanh toán phí thuê khách sau.</Typography>
+              <Typography component="li">Làm rách hỏng, mất <b>{'=>'}</b> thanh toán <b>phí sửa chữa</b>/thanh toán <b>số tiền order lại</b> <b>+ chịu trách nhiệm</b> với đơn khách sau.</Typography>
+              <Typography component="li">Huỷ đơn <b>2 ngày</b> trước khi lấy đồ shop không hoàn lại tiền thuê.</Typography>
+              <Typography component="li">Khách nhận đồ <b>qua 2 tiếng</b> nếu ko có vấn đề gì shop <b>không chịu trách nhiệm</b>.</Typography>
+              
             </Box>
           </Grid>
 

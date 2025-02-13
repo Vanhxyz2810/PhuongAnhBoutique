@@ -5,7 +5,6 @@ import { User } from '../models/User';
 import { Session } from '../models/Session';
 import { Category } from '../models/Category';
 import dotenv from 'dotenv';
-import { seedCategories } from '../seeders/categorySeeder';
 
 dotenv.config();
 
@@ -41,9 +40,7 @@ export const connectDB = async () => {
     
     console.log("✅ Database connected successfully");
     
-    // Chạy seeders
-    await seedCategories();
-    
+
     // Log số lượng records trong các bảng
     const usersCount = await AppDataSource.getRepository(User).count();
     const clothesCount = await AppDataSource.getRepository(Clothes).count();

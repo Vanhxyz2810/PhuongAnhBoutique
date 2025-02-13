@@ -43,4 +43,13 @@ export class Clothes {
 
   @OneToMany(() => Rental, rental => rental.clothes)
   rentals!: Rental[];
+
+  @Column('simple-array', { nullable: true })
+  images: string[];
+
+  @Column({ default: false })
+  isPinned: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  pinnedAt?: Date;
 } 

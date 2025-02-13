@@ -61,7 +61,7 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <IconButton 
-                href="https://facebook.com" 
+                href="https://www.facebook.com/profile.php?id=61558437202041" 
                 target="_blank"
                 sx={{ 
                   color: '#FF90BC',
@@ -71,7 +71,7 @@ const Footer = () => {
                 <Facebook />
               </IconButton>
               <IconButton 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/thuevayhaiphong_bypa/" 
                 target="_blank"
                 sx={{ 
                   color: '#FF90BC',
@@ -80,16 +80,7 @@ const Footer = () => {
               >
                 <Instagram />
               </IconButton>
-              <IconButton 
-                href="https://youtube.com" 
-                target="_blank"
-                sx={{ 
-                  color: '#FF90BC',
-                  '&:hover': { bgcolor: 'rgba(255, 144, 188, 0.08)' }
-                }}
-              >
-                <YouTube />
-              </IconButton>
+              
             </Box>
           </Grid>
 

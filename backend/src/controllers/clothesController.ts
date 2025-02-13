@@ -7,7 +7,8 @@ import { MulterRequest } from '../config/multer';
 import { Rental } from '../models/Rental';
 import { uploadToCloudinary } from '../middleware/uploadToCloud';
 import { Category } from '../models/Category';
-import { seedCategories } from '../seeders/categorySeeder';
+// import { seedCategories } from '../seeders/categorySeeder';
+import { ILike, Not } from 'typeorm';
 
 const clothesRepository = AppDataSource.getRepository(Clothes);
 const categoryRepository = AppDataSource.getRepository(Category);
@@ -17,7 +18,11 @@ export default {
     try {
       console.log('Fetching all clothes...');
       const clothes = await clothesRepository.find({
-        order: { createdAt: 'DESC' }
+        order: {
+          isPinned: 'DESC',
+          pinnedAt: 'DESC',
+          createdAt: 'DESC'
+        }
       });
       console.log('Found clothes:', clothes);
       res.json(clothes);
@@ -33,13 +38,18 @@ export default {
   create: (async (req: MulterRequest, res: Response) => {
     try {
       const clothesData = req.body;
-      const file = req.file;
+      const files = req.files as Express.Multer.File[];
 
-      if (file) {
-        // Upload to Cloudinary và lưu URL trực tiếp
-        const imageUrl = await uploadToCloudinary(file);
-        // Không cần thêm path prefix vì Cloudinary đã trả về URL đầy đủ
-        clothesData.image = imageUrl;
+      if (files && files.length > 0) {
+        // Upload tất cả ảnh lên Cloudinary
+        const imageUrls = await Promise.all(
+          files.map(file => uploadToCloudinary(file))
+        );
+
+        // Lưu mảng URLs vào trường images
+        clothesData.images = imageUrls;
+        // Ảnh đầu tiên sẽ là ảnh chính
+        clothesData.image = imageUrls[0];
       }
 
       const clothes = clothesRepository.create({
@@ -49,8 +59,11 @@ export default {
       });
 
       await clothesRepository.save(clothes);
+      
+      // Log để debug
+      console.log('Created clothes with images:', clothes);
+      
       res.status(201).json(clothes);
-
     } catch (error) {
       console.error('Error creating clothes:', error);
       res.status(500).json({ message: 'Lỗi server' });
@@ -59,30 +72,38 @@ export default {
 
   update: (async (req: MulterRequest, res: Response) => {
     try {
-      const clothesData = req.body;
       const { id } = req.params;
+      const clothesData = req.body;
+      const files = req.files as Express.Multer.File[];
 
       const clothes = await clothesRepository.findOne({ where: { id } });
       if (!clothes) {
-        return res.status(404).json({ message: 'Không tìm thấy' });
+        return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
       }
 
-      // Cập nhật các trường thông tin
-      clothes.name = clothesData.name;
-      clothes.ownerName = clothesData.ownerName;
-      clothes.rentalPrice = Number(clothesData.rentalPrice);
-      clothes.description = clothesData.description;
-      clothes.status = clothesData.status;
-      clothes.category = clothesData.category;
+      if (files && files.length > 0) {
+        // Upload tất cả ảnh mới lên Cloudinary
+        const imageUrls = await Promise.all(
+          files.map(file => uploadToCloudinary(file))
+        );
 
-      if (req.file) {
-        const imageUrl = await uploadToCloudinary(req.file);
-        clothes.image = imageUrl;
+        // Cập nhật cả mảng images và ảnh chính
+        clothes.images = imageUrls;
+        clothes.image = imageUrls[0];
       }
+
+      // Cập nhật các trường khác
+      Object.assign(clothes, {
+        ...clothesData,
+        rentalPrice: Number(clothesData.rentalPrice)
+      });
 
       await clothesRepository.save(clothes);
+      
+      // Log để debug
+      console.log('Updated clothes with images:', clothes);
+      
       res.json(clothes);
-
     } catch (error) {
       console.error('Error updating clothes:', error);
       res.status(500).json({ message: 'Lỗi server' });
@@ -127,43 +148,34 @@ export default {
     }
   }) as RequestHandler,
 
-  getClothesById: (async (req: Request, res: Response) => {
+  getClothesById: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      
-      const clothes = await clothesRepository.findOne({
-        where: { id },
-        relations: ['rentals']
-      });
+      const clothes = await clothesRepository.findOne({ where: { id } });
 
       if (!clothes) {
         return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
       }
 
-      // Kiểm tra xem có đơn thuê nào đang active không
-      const hasActiveRental = clothes.rentals?.some(
-        rental => rental.status === 'pending' || rental.status === 'approved'
-      );
+      // Log để debug
+      console.log('Retrieved clothes with images:', clothes);
 
-      // Format response theo interface Product
-      const response = {
+      res.json({
         id: clothes.id,
         name: clothes.name,
         price: clothes.rentalPrice,
         originalPrice: clothes.rentalPrice * 2,
-        images: clothes.image ? [clothes.image] : [],
-        sizes: ['S', 'M', 'L'],
-        description: clothes.description || 'Chưa có mô tả',
-        sku: `SP${clothes.id}`,
-        status: hasActiveRental ? 'rented' : 'available'
-      };
-
-      res.json(response);
+        images: clothes.images || [clothes.image], // Fallback to array with single image
+        image: clothes.image,
+        description: clothes.description,
+        status: clothes.status,
+        category: clothes.category
+      });
     } catch (error) {
       console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
-  }) as RequestHandler,
+  },
 
   getAllCategories: async (_req: Request, res: Response) => {
     try {
@@ -176,7 +188,7 @@ export default {
       
       if (categories.length === 0) {
         console.log('No categories found, running seeder...');
-        await seedCategories();
+        // await seedCategories();
         const newCategories = await categoryRepository.find({
           where: { isActive: true },
           order: { name: 'ASC' }
@@ -211,6 +223,29 @@ export default {
       await categoryRepository.update(id, { isActive: false });
       res.json({ message: 'Đã xóa danh mục' });
     } catch (error) {
+      res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  togglePin: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const clothes = await clothesRepository.findOne({ where: { id } });
+      
+      if (!clothes) {
+        return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+      }
+
+      clothes.isPinned = !clothes.isPinned;
+      clothes.pinnedAt = clothes.isPinned ? new Date() : undefined;
+      
+      await clothesRepository.save(clothes);
+      
+      res.json({ 
+        message: clothes.isPinned ? 'Đã ghim sản phẩm' : 'Đã bỏ ghim sản phẩm'
+      });
+    } catch (error) {
+      console.error('Error toggling pin:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }

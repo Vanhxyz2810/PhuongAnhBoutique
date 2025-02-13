@@ -9,24 +9,25 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, uploadDir);
+  destination: (_req, _file, cb) => {
+    cb(null, path.join(__dirname, '../../uploads/clothes'));
   },
-  filename: function (_req, file, cb) {
+  filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-export const uploadClothes = multer({ 
+export const uploadClothes = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (allowedTypes.includes(file.mimetype)) {
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, gif)'));
+      cb(new Error('Chỉ chấp nhận file ảnh'));
     }
   }
 }); 

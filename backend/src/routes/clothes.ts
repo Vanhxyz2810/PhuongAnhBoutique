@@ -13,15 +13,14 @@ router.delete('/categories/:id', auth, clothesController.deleteCategory);
 
 // Clothes routes
 router.get('/', clothesController.getAll);
-router.post('/', auth, uploadClothes.single('image'), (req: MulterRequest, res: Response, next: NextFunction) => {
-  console.log('File path:', req.file?.path);
-  console.log('File saved as:', req.file?.filename);
+router.post('/', auth, uploadClothes.array('images', 5), (req: MulterRequest, res: Response, next: NextFunction) => {
   clothesController.create(req, res, next);
 });
-router.put('/:id', auth, uploadClothes.single('image'), (req: MulterRequest, res: Response, next: NextFunction) => {
+router.put('/:id', auth, uploadClothes.array('images', 5), (req: MulterRequest, res: Response, next: NextFunction) => {
   clothesController.update(req, res, next);
 });
 router.delete('/:id', auth, clothesController.delete);
 router.get('/:id', clothesController.getClothesById);
+router.patch('/:id/toggle-pin', auth, clothesController.togglePin);
 
 export default router; 
