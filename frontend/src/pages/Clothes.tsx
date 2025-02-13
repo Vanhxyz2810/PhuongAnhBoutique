@@ -579,7 +579,7 @@ const Clothes = () => {
                 !formData.name || 
                 !formData.ownerName || 
                 !formData.rentalPrice || 
-                (imageFiles.length === 0)
+                (!editingId && imageFiles.length === 0)
               }
             >
               {editingId ? 'Cập Nhật' : 'Lưu'}
