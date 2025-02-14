@@ -147,13 +147,20 @@ const ProductDetail = () => {
   const [bookedDates, setBookedDates] = useState<{start: Date, end: Date}[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const calculateTotal = useCallback(() => {
+  const calculateTotal = () => {
     if (!formData.rentDate || !formData.returnDate || !product) {
       return 0;
     }
-    const days = Math.ceil((formData.returnDate.getTime() - formData.rentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return days * product.price;
-  }, [formData.rentDate, formData.returnDate, product]);
+
+    const rentDate = new Date(formData.rentDate);
+    const returnDate = new Date(formData.returnDate);
+    
+    const diffTime = returnDate.getTime() - rentDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const days = Math.max(1, diffDays);
+    
+    return product.price * days;
+  };
 
   const handleRentClick = useCallback(() => {
     // Delay mở form để tránh blocking UI
@@ -172,7 +179,10 @@ const ProductDetail = () => {
 
       const response = await axiosInstance.get(`/clothes/${id}`);
       console.log('Product data:', response.data); // Thêm log để debug
-      setProduct(response.data);
+      setProduct({
+        ...response.data,
+        rentalPrice: response.data.price
+      });
     } catch (error: unknown) {
       console.error('Error fetching product:', error);
       const apiError = error as ApiError;
