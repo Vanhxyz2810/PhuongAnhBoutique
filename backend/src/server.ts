@@ -84,6 +84,12 @@ const seedAdmin = async () => {
   }
 };
 
+// Thêm middleware để log requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 // Connect to SQLite
 connectDB().then(async () => {
   // Seed admin user

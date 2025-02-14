@@ -23,7 +23,8 @@ import {
   Stack,
   DialogTitle,
   DialogActions,
-  Button
+  Button,
+  CircularProgress
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -72,6 +73,7 @@ const Rentals = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState<number | null>(null);
 
   const fetchRentals = async () => {
     try {
@@ -97,14 +99,17 @@ const Rentals = () => {
 
   const handleStatusChange = async (rentalId: number, newStatus: string) => {
     try {
+      setLoadingStatus(rentalId);
       await axiosInstance.put(`/rentals/${rentalId}/status`, {
         status: newStatus
       });
-      
-      // Refresh danh sách sau khi cập nhật
-      fetchRentals();
+      await fetchRentals();
+      enqueueSnackbar('Cập nhật trạng thái thành công', { variant: 'success' });
     } catch (error) {
       console.error('Error updating status:', error);
+      enqueueSnackbar('Lỗi khi cập nhật trạng thái', { variant: 'error' });
+    } finally {
+      setLoadingStatus(null);
     }
   };
 
@@ -395,29 +400,42 @@ const Rentals = () => {
                   </TableCell>
                   <TableCell>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <Select
-                        value={rental.status === 'pending_payment' ? 'pending' : rental.status}
-                        onChange={(e) => handleStatusChange(rental.id, e.target.value)}
-                        sx={{
-                          '& .MuiSelect-select': {
-                            color: statusOptions.find(opt => opt.value === rental.status)?.color
-                          }
-                        }}
-                      >
-                        {statusOptions.map(option => (
-                          <MenuItem 
-                            key={option.value} 
-                            value={option.value}
-                            sx={{ color: `${option.color}.main` }}
-                          >
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
+                      {loadingStatus === rental.id ? (
+                        <Box display="flex" justifyContent="center">
+                          <CircularProgress size={24} />
+                        </Box>
+                      ) : (
+                        <Select
+                          value={rental.status}
+                          onChange={(e) => handleStatusChange(rental.id, e.target.value)}
+                          sx={{
+                            '& .MuiSelect-select': {
+                              color: statusOptions.find(opt => opt.value === rental.status)?.color
+                            }
+                          }}
+                        >
+                          {statusOptions.map(option => (
+                            <MenuItem 
+                              key={option.value} 
+                              value={option.value}
+                              sx={{ color: `${option.color}.main` }}
+                            >
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      )}
                     </FormControl>
                   </TableCell>
                   <TableCell>
                     <IconButton 
+                      sx={{ 
+                        color: '#FF69B4',
+                        '&:hover': { 
+                          backgroundColor: '#FFF0F5',
+                          color: '#FF1493'
+                        }
+                      }}
                       onClick={() => handleDelete(rental.id)}
                       disabled={rental.status === 'approved'}
                     >

@@ -6,7 +6,14 @@ import { checkRole } from '../middleware/checkRole';
 
 const router = express.Router();
 
-// Public routes - đặt trước các routes khác và không cần auth
+// Thêm middleware để log
+router.use((req, res, next) => {
+  console.log('Rental route:', req.method, req.path);
+  next();
+});
+
+// Public routes - đặt trước các routes khác
+router.put('/cancel/:orderCode', rentalController.cancelRental);
 router.get('/booked-dates/:clothesId', rentalController.getRentalDates);
 router.get('/by-order-code/:orderCode', rentalController.getRentalByOrderCode);
 router.get('/check-payment/:orderCode', rentalController.checkPaymentStatus);

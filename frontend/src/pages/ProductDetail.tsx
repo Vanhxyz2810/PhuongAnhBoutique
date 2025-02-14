@@ -21,6 +21,7 @@ import {
   Select,
   MenuItem,
   TextField,
+  CircularProgress,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import Snowfall from 'react-snowfall';
@@ -144,6 +145,7 @@ const ProductDetail = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('transfer');
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
   const [bookedDates, setBookedDates] = useState<{start: Date, end: Date}[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const calculateTotal = useCallback(() => {
     if (!formData.rentDate || !formData.returnDate || !product) {
@@ -305,6 +307,33 @@ const ProductDetail = () => {
     }
   }, [product]);
 
+  const hasBookings = bookedDates.length > 0;
+  
+  // Thêm hàm kiểm tra trạng thái đơn
+  const getBookingMessage = () => {
+    if (!hasBookings) {
+      return (
+        <Typography 
+          variant="subtitle1" 
+          color="success.main"
+          sx={{ fontStyle: 'italic', mt: 2 }}
+        >
+          ✨ Bộ này hiện đang trống lịch, bạn có thể đặt thuê ngay!
+        </Typography>
+      );
+    }
+
+    return (
+      <Typography 
+        variant="subtitle1" 
+        color="info.main"
+        sx={{ fontStyle: 'italic', mt: 2 }}
+      >
+        Bộ này đã có lịch thuê, vui lòng chọn ngày phù hợp!
+      </Typography>
+    );
+  };
+
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <Typography>Đang tải...</Typography>
@@ -355,6 +384,7 @@ const ProductDetail = () => {
     }
 
     try {
+      setSubmitting(true);
       console.log('=== SUBMITTING RENTAL ===');
       
       const formDataToSend = new FormData();
@@ -403,6 +433,8 @@ const ProductDetail = () => {
         console.error('Response:', apiError.response.data);
       }
       enqueueSnackbar(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê', {variant:'error'})
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -534,69 +566,7 @@ const ProductDetail = () => {
               <Typography variant="h6" gutterBottom sx={{textAlign: 'center', color: theme.colors.primary }}>
                 Lịch cho thuê
               </Typography>
-              {bookedDates.length > 0 ? (
-                <>
-                  <Typography variant="body2" color="textSecondary" textAlign='center' fontWeight= 'bold' gutterBottom>
-                    Bộ này đã được đặt trong các ngày:
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    {bookedDates.map((booking, index) => (
-                      <Typography key={index} sx={{ mt: 2, mb: 1, textAlign: 'center' }}>
-                         <Box 
-                            component="span" 
-                            sx={{ 
-                              fontWeight: 'bold',
-                              color: theme.colors.primary 
-                            }}
-                          >
-                            Từ
-                          </Box>{' '}
-                        <Box component="span" color="error">
-                          {formatDate(booking.start)}
-                        </Box>{' '}
-                        <Box 
-                          component="span" 
-                          sx={{ 
-                            fontWeight: 'bold',
-                            color: theme.colors.primary 
-                          }}
-                        >
-                          đến
-                        </Box>{' '}
-                        <Box component="span" color="error">
-                          {formatDate(booking.end)}
-                        </Box>
-                      </Typography>
-                    ))}
-                  </Box>
-
-                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                    <DateCalendar 
-                      readOnly
-                      disablePast
-                      shouldDisableDate={(date: Date) => isDateBooked(date)}
-                      sx={{ 
-                        '& .Mui-disabled': { 
-                          color: theme.colors.sale + '!important',
-                          opacity: 0.7 
-                        } 
-                      }}
-                    />
-                  </LocalizationProvider>
-                </>
-              ) : (
-                <Typography 
-                  color="success.main" 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: '#e8f5e9', 
-                    borderRadius: 1,
-                    textAlign: 'center' 
-                  }}
-                >
-                  ✨ Bộ này hiện đang trống lịch, bạn có thể đặt thuê ngay!
-                </Typography>
-              )}
+              {getBookingMessage()}
             </Box>
 
             {/* Nút Thuê ngay */}
@@ -648,55 +618,17 @@ const ProductDetail = () => {
           </Grid>
         </Grid>
         <Box mt={4}>
-          <Typography variant="h6" gutterBottom>
-            Lịch cho thuê
+          <Typography variant="h6">
+            Lịch Cho Thuê
           </Typography>
-          {bookedDates.length > 0 ? (
-            <>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Bộ này đã được đặt trong các ngày:
-              </Typography>
-              {bookedDates.map((booking, index) => (
-                <Typography key={index} sx={{ mb: 1 }}>
-                  • <Box 
-                      component="span" 
-                      sx={{ 
-                        fontWeight: 'bold',
-                        color: theme.colors.primary 
-                      }}
-                    >
-                      Từ
-                    </Box>{' '}
-                  <Box component="span" color="error">
-                    {formatDate(booking.start)}
-                  </Box>{' '}
-                  <Box 
-                    component="span" 
-                    sx={{ 
-                      fontWeight: 'bold',
-                      color: theme.colors.primary 
-                    }}
-                  >
-                    đến
-                  </Box>{' '}
-                  <Box component="span" color="error">
-                    {formatDate(booking.end)}
-                  </Box>
-                </Typography>
-              ))}
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                <DateCalendar 
-                  readOnly
-                  disablePast
-                  shouldDisableDate={(date: Date) => isDateBooked(date)}
-                />
-              </LocalizationProvider>
-            </>
-          ) : (
-            <Typography color="success.main">
-              Bộ này hiện đang trống lịch, bạn có thể đặt thuê ngay!
-            </Typography>
-          )}
+          {getBookingMessage()}
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+            <DateCalendar
+              readOnly
+              disablePast
+              shouldDisableDate={(date: Date) => isDateBooked(date)}
+            />
+          </LocalizationProvider>
         </Box>
         {/* Phần chính sách và liên hệ */}
         <Grid container spacing={4}>
@@ -766,156 +698,165 @@ const ProductDetail = () => {
 
       <Dialog open={openRentalForm}>
         <DialogTitle>Thông tin thuê đồ</DialogTitle>
-        <DialogContent>
-          {/* Thông tin cá nhân */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-            <TextField
-              fullWidth
-              label="Họ và tên"
-              value={formData.customerName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setFormData(prev => ({
-                  ...prev,
-                  customerName: e.target.value
-                }));
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Số điện thoại"
-              value={formData.phone}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setFormData(prev => ({
-                  ...prev,
-                  phone: e.target.value
-                }));
-              }}
-            />
-            <Box sx={{ mb: 3 }}>
-              <input
-                type="file"
-                id="cccd-upload"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  handleFileChange(e);
-                }}
-              />
-              <Button
-                variant="outlined"
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            {/* Thông tin cá nhân */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+              <TextField
                 fullWidth
-                onClick={() => {
-                  setOpenPrivacyDialog(true);
+                label="Họ và tên"
+                value={formData.customerName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    customerName: e.target.value
+                  }));
                 }}
-                startIcon={<CloudUploadIcon />}
-              >
-                {formData.identityCard ? `Đã tải lên CCCD: ${formData.identityCard.name}` : 'Tải lên CCCD'}
-              </Button>
+              />
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                value={formData.phone}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    phone: e.target.value
+                  }));
+                }}
+              />
+              <Box sx={{ mb: 3 }}>
+                <input
+                  type="file"
+                  id="cccd-upload"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    handleFileChange(e);
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => {
+                    setOpenPrivacyDialog(true);
+                  }}
+                  startIcon={<CloudUploadIcon />}
+                >
+                  {formData.identityCard ? `Đã tải lên CCCD: ${formData.identityCard.name}` : 'Tải lên CCCD'}
+                </Button>
+              </Box>
+
+              {/* Phương thức thanh toán */}
+              <FormControl fullWidth>
+                <InputLabel>Phương thức thanh toán</InputLabel>
+                <Select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'transfer')}
+                >
+                  <MenuItem value="transfer">Chuyển khoản</MenuItem>
+                  <MenuItem value="cash">Tiền mặt</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Chọn ngày và giờ */}
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                <DatePicker
+                  label="Ngày thuê"
+                  value={formData.rentDate}
+                  onChange={handleDateChange('rentDate')}
+                  shouldDisableDate={isDateBooked}
+                  disablePast
+                  slotProps={{
+                    textField: {
+                      fullWidth: true
+                    } as TextFieldProps
+                  }}
+                />
+                <DatePicker
+                  label="Ngày trả"
+                  value={formData.returnDate}
+                  onChange={handleDateChange('returnDate')}
+                  shouldDisableDate={isDateBooked}
+                  minDate={formData.rentDate || undefined}
+                  disablePast
+                  slotProps={{
+                    textField: {
+                      fullWidth: true
+                    } as TextFieldProps
+                  }}
+                />
+                <TimePicker
+                  label="Giờ lấy hàng"
+                  value={pickupTime}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      setPickupTime(newValue);
+                    }
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true
+                    } as TextFieldProps
+                  }}
+                />
+              </LocalizationProvider>
+
+              {/* Hiển thị tổng tiền */}
+              <Box sx={{ 
+                mt: 2, 
+                p: 2, 
+                bgcolor: 'rgba(255,20,147,0.04)', 
+                borderRadius: 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Tổng tiền:
+                </Typography>
+                <Typography variant="h6" color="primary.main" fontWeight="bold">
+                  {new Intl.NumberFormat('vi-VN').format(calculateTotal())}₫
+                </Typography>
+              </Box>
             </Box>
+          </DialogContent>
 
-            {/* Phương thức thanh toán */}
-            <FormControl fullWidth>
-              <InputLabel>Phương thức thanh toán</InputLabel>
-              <Select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'transfer')}
-              >
-                <MenuItem value="transfer">Chuyển khoản</MenuItem>
-                <MenuItem value="cash">Tiền mặt</MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* Chọn ngày và giờ */}
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-              <DatePicker
-                label="Ngày thuê"
-                value={formData.rentDate}
-                onChange={handleDateChange('rentDate')}
-                shouldDisableDate={isDateBooked}
-                disablePast
-                slotProps={{
-                  textField: {
-                    fullWidth: true
-                  } as TextFieldProps
-                }}
-              />
-              <DatePicker
-                label="Ngày trả"
-                value={formData.returnDate}
-                onChange={handleDateChange('returnDate')}
-                shouldDisableDate={isDateBooked}
-                minDate={formData.rentDate || undefined}
-                disablePast
-                slotProps={{
-                  textField: {
-                    fullWidth: true
-                  } as TextFieldProps
-                }}
-              />
-              <TimePicker
-                label="Giờ lấy hàng"
-                value={pickupTime}
-                onChange={(newValue) => {
-                  if (newValue) {
-                    setPickupTime(newValue);
-                  }
-                }}
-                slotProps={{
-                  textField: {
-                    fullWidth: true
-                  } as TextFieldProps
-                }}
-              />
-            </LocalizationProvider>
-
-            {/* Hiển thị tổng tiền */}
-            <Box sx={{ 
-              mt: 2, 
-              p: 2, 
-              bgcolor: 'rgba(255,20,147,0.04)', 
-              borderRadius: 1,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <Typography variant="subtitle1" fontWeight="bold">
-                Tổng tiền:
-              </Typography>
-              <Typography variant="h6" color="primary.main" fontWeight="bold">
-                {new Intl.NumberFormat('vi-VN').format(calculateTotal())}₫
-              </Typography>
-            </Box>
-          </Box>
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button 
-            onClick={() => setOpenRentalForm(false)}
-            variant="outlined"
-            sx={{
-              color: '#FF1493',
-              borderColor: '#FF1493',
-              '&:hover': {
-                borderColor: '#FF69B4',
-                backgroundColor: 'rgba(255,20,147,0.04)'
-              }
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            sx={{
-              bgcolor: '#FF1493',
-              '&:hover': {
-                bgcolor: '#FF69B4'
-              }
-            }}
-          >
-            Xác nhận
-          </Button>
-        </DialogActions>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button 
+              onClick={() => setOpenRentalForm(false)}
+              type="button"
+              variant="outlined"
+              sx={{
+                color: '#FF1493',
+                borderColor: '#FF1493',
+                '&:hover': {
+                  borderColor: '#FF69B4',
+                  backgroundColor: 'rgba(255,20,147,0.04)'
+                }
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!isPhoneValid || submitting}
+              sx={{
+                bgcolor: '#FF1493',
+                '&:hover': {
+                  bgcolor: '#FF69B4'
+                },
+                height: 48
+              }}
+            >
+              {submitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Xác nhận thuê'
+              )}
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Container>
   );

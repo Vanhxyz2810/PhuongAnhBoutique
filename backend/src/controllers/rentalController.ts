@@ -502,7 +502,6 @@ export default {
       const { clothesId } = req.params;
       console.log('Getting booked dates for clothes:', clothesId);
       
-      // Kiểm tra xem clothesId có tồn tại không
       const clothes = await clothesRepository.findOne({
         where: { id: clothesId }
       });
@@ -513,18 +512,24 @@ export default {
         });
       }
       
+      // Chỉ lấy các đơn có trạng thái cần thiết
       const rentals = await rentalRepository.find({
         where: {
           clothesId,
-          status: In([RentalStatus.APPROVED, RentalStatus.PENDING, RentalStatus.PENDING_PAYMENT]),
+          status: In([
+            RentalStatus.APPROVED, 
+            RentalStatus.PENDING_PAYMENT,
+            RentalStatus.PENDING
+          ]),
         }
       });
 
-      console.log('Found rentals:', rentals);
+      console.log('Found valid rentals:', rentals);
 
       const bookedDates = rentals.map(rental => ({
         start: rental.rentDate,
-        end: rental.returnDate
+        end: rental.returnDate,
+        status: rental.status
       }));
 
       return res.json(bookedDates);
@@ -579,6 +584,50 @@ export default {
     } catch (error) {
       console.error('Error getting feedbacks:', error);
       res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  // Thêm endpoint xử lý hủy thanh toán
+  cancelRental: async (req: Request, res: Response) => {
+    try {
+      const { orderCode } = req.params;
+      const fullOrderCode = `PA${orderCode}`; // Thêm prefix PA
+      console.log('Attempting to cancel rental with orderCode:', fullOrderCode);
+      
+      const rental = await rentalRepository
+        .createQueryBuilder('rental')
+        .where('rental.orderCode = :orderCode', { 
+          orderCode: fullOrderCode
+        })
+        .getOne();
+
+      console.log('Found rental:', rental);
+
+      if (!rental) {
+        console.log('No rental found with orderCode:', fullOrderCode);
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      // Kiểm tra trạng thái hiện tại
+      console.log('Current rental status:', rental.status);
+
+      // Cập nhật trạng thái quần áo về available
+      await clothesRepository.update(rental.clothesId, { 
+        status: 'available' 
+      });
+      console.log('Updated clothes status to available');
+
+      // Cập nhật trạng thái đơn hàng
+      await rentalRepository.update(rental.id, {
+        status: RentalStatus.REJECTED,
+        rejectedAt: new Date()
+      });
+      console.log('Updated rental status to rejected');
+
+      return res.json({ message: 'Đã cập nhật trạng thái' });
+    } catch (error) {
+      console.error('Error cancelling rental:', error);
+      return res.status(500).json({ message: 'Lỗi server' });
     }
   },
 }; 

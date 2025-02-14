@@ -25,7 +25,8 @@ import {
   Container,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  CircularProgress
 } from '@mui/material';
 import { Edit, Delete, CloudUpload } from '@mui/icons-material';
 import axiosInstance from '../utils/axios';
@@ -82,6 +83,8 @@ const Clothes = () => {
   const [editingCategory, setEditingCategory] = useState<{id: number, name: string} | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const { enqueueSnackbar } = useSnackbar();
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch data when component mounts
   useEffect(() => {
@@ -122,6 +125,7 @@ const Clothes = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setSubmitting(true);
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('ownerName', formData.ownerName);
@@ -167,17 +171,22 @@ const Clothes = () => {
     } catch (error) {
       console.error('Error details:', error);
       enqueueSnackbar('Có lỗi xảy ra khi lưu', { variant: 'error' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
+      setDeletingId(id);
       await axiosInstance.delete(`/clothes/${id}`);
       fetchClothes();
       enqueueSnackbar('Xóa thành công!', { variant: 'success' });
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar('Lỗi khi xóa sản phẩm', { variant: 'error' });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -297,6 +306,12 @@ const Clothes = () => {
     } catch (error) {
       enqueueSnackbar('Lỗi khi xóa danh mục', { variant: 'error' });
     }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditingId(null);
+    setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available', category: '' });
   };
 
   return (
@@ -422,16 +437,21 @@ const Clothes = () => {
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton 
+                  sx={{ 
+                    color: '#FF69B4',
+                    '&:hover': { 
+                      backgroundColor: '#FFF0F5',
+                      color: '#FF1493'
+                    }
+                  }}
                     onClick={() => handleDelete(item.id)}
-                    sx={{ 
-                      color: '#FF69B4',
-                      '&:hover': { 
-                        backgroundColor: '#FFF0F5',
-                        color: '#FF1493'
-                      }
-                    }}
+                    disabled={deletingId === item.id}
                   >
-                    <Delete fontSize="small" />
+                    {deletingId === item.id ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      <Delete fontSize="small" />
+                    )}
                   </IconButton>
                   <IconButton 
                   sx={{ 
@@ -475,116 +495,136 @@ const Clothes = () => {
       <Box role="presentation">
         <Dialog 
           open={open}
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
           aria-labelledby="clothes-dialog-title"
         >
           <DialogTitle id="clothes-dialog-title">
-            {editingId ? 'Cập Nhật Quần Áo' : 'Thêm Quần Áo Mới'}
+            {editingId ? 'Chỉnh Sửa Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
           </DialogTitle>
-          <DialogContent>
-            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Image Upload */}
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <input
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  id="raised-button-file"
-                  multiple
-                  type="file"
-                  onChange={handleImageChange}
+          <form onSubmit={handleSubmit}>
+            <DialogContent>
+              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Image Upload */}
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <input
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    id="raised-button-file"
+                    multiple
+                    type="file"
+                    onChange={handleImageChange}
+                  />
+                  <label htmlFor="raised-button-file">
+                    <Button variant="outlined" component="span" fullWidth>
+                      Chọn ảnh
+                    </Button>
+                  </label>
+                </FormControl>
+
+                {imagePreviews.length > 0 && (
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    {imagePreviews.map((preview, index) => (
+                      <img 
+                        key={index}
+                        src={preview}
+                        alt={`preview ${index}`}
+                        style={{ width: 100, height: 100, objectFit: 'cover' }}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                {/* Existing form fields */}
+                <TextField
+                  label="Tên Bộ Quần Áo"
+                  fullWidth
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
-                <label htmlFor="raised-button-file">
-                  <Button variant="outlined" component="span" fullWidth>
-                    Chọn ảnh
-                  </Button>
-                </label>
-              </FormControl>
-
-              {imagePreviews.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                  {imagePreviews.map((preview, index) => (
-                    <img 
-                      key={index}
-                      src={preview}
-                      alt={`preview ${index}`}
-                      style={{ width: 100, height: 100, objectFit: 'cover' }}
-                    />
-                  ))}
-                </Box>
-              )}
-
-              {/* Existing form fields */}
-              <TextField
-                label="Tên Bộ Quần Áo"
-                fullWidth
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-              <TextField
-                label="Người Cho Thuê"
-                fullWidth
-                value={formData.ownerName}
-                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-              />
-              <TextField
-                label="Giá Thuê"
-                type="number"
-                fullWidth
-                value={formData.rentalPrice}
-                onChange={(e) => setFormData({ ...formData, rentalPrice: e.target.value })}
-              />
-              <TextField
-                label="Mô tả"
-                fullWidth
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Tình trạng</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'available' | 'rented' })}
-                >
-                  <MenuItem value="available">Có sẵn</MenuItem>
-                  <MenuItem value="rented">Đang thuê</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Danh mục</InputLabel>
-                <Select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setOpen(false);
-              setEditingId(null);
-              setFormData({ name: '', ownerName: '', rentalPrice: '', description: '', status: 'available', category: '' });
-            }}>Hủy</Button>
-            <Button 
-              variant="contained" 
-              onClick={handleSubmit}
-              disabled={
-                !formData.name || 
-                !formData.ownerName || 
-                !formData.rentalPrice || 
-                (!editingId && imageFiles.length === 0)
-              }
-            >
-              {editingId ? 'Cập Nhật' : 'Lưu'}
-            </Button>
-          </DialogActions>
+                <TextField
+                  label="Người Cho Thuê"
+                  fullWidth
+                  value={formData.ownerName}
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                />
+                <TextField
+                  label="Giá Thuê"
+                  type="number"
+                  fullWidth
+                  value={formData.rentalPrice}
+                  onChange={(e) => setFormData({ ...formData, rentalPrice: e.target.value })}
+                />
+                <TextField
+                  label="Mô tả"
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Tình trạng</InputLabel>
+                  <Select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'available' | 'rented' })}
+                  >
+                    <MenuItem value="available">Có sẵn</MenuItem>
+                    <MenuItem value="rented">Đang thuê</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Danh mục</InputLabel>
+                  <Select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  >
+                    {categories.map((cat) => (
+                      <MenuItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={handleClose}
+                type="button"
+                sx={{
+                  color: '#FF1493',
+                  '&:hover': {
+                    color: '#FF69B4'
+                  }
+                }}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={
+                  !formData.name || 
+                  !formData.ownerName || 
+                  !formData.rentalPrice || 
+                  (!editingId && imageFiles.length === 0) ||
+                  submitting
+                }
+                sx={{
+                  bgcolor: '#FF1493',
+                  '&:hover': {
+                    bgcolor: '#FF69B4'
+                  }
+                }}
+              >
+                {submitting ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  editingId ? 'Cập Nhật' : 'Lưu'
+                )}
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       </Box>
 

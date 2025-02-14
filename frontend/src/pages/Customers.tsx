@@ -259,7 +259,13 @@ const Customers = () => {
                     sx={{ width: '100px' }}
                   />
 
-                  <IconButton onClick={() => handleRemoveClothes(index)}>
+                  <IconButton sx={{ 
+                    color: '#FF69B4',
+                    '&:hover': { 
+                      backgroundColor: '#FFF0F5',
+                      color: '#FF1493'
+                    }
+                  }} onClick={() => handleRemoveClothes(index)}>
                     <DeleteIcon />
                   </IconButton>
                 </Box>

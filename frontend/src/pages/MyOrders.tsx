@@ -17,6 +17,7 @@ import {
   Select,
   MenuItem,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -55,6 +56,7 @@ const MyOrders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -78,6 +80,7 @@ const MyOrders = () => {
     images: File[];
   }) => {
     try {
+      setSubmittingFeedback(true);
       const uploadedImages = await Promise.all(
         data.images.map(async (file) => {
           const formData = new FormData();
@@ -109,6 +112,8 @@ const MyOrders = () => {
     } catch (error) {
       console.error('Error submitting feedback:', error);
       enqueueSnackbar('Có lỗi xảy ra khi gửi feedback', { variant: 'error' });
+    } finally {
+      setSubmittingFeedback(false);
     }
   };
 

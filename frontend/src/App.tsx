@@ -96,7 +96,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/rental-success" element={<RentalSuccess />} />
-                {/* <Route path="/success" element={<SuccessPayment />} /> */}
+                <Route path="/success" element={<RentalSuccess />} />
                 <Route path="/cancel" element={<PaymentCancel />} />
               </Routes>
             </Layout>
