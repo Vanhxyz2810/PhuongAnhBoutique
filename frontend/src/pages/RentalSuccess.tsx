@@ -1,7 +1,10 @@
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, Button, Paper } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 import Snowfall from 'react-snowfall';
+import { useEffect } from 'react';
+import { useSnackbar } from 'notistack';
+import axiosInstance from '../utils/axios';
 
 // Định nghĩa theme màu sắc
 const theme = {
@@ -16,6 +19,38 @@ const theme = {
 const RentalSuccess = () => {
   const [searchParams] = useSearchParams();
   const orderCode = searchParams.get('orderCode');
+  const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      try {
+        if (orderCode) {
+          const fullOrderCode = orderCode.startsWith('PA') ? orderCode : `PA${orderCode}`;
+          const response = await axiosInstance.get(`/rentals/check-payment/${fullOrderCode}`);
+          
+          // Kiểm tra cả PAID và approved
+          if (response.data.status === 'approved' || searchParams.get('status') === 'PAID') {
+            enqueueSnackbar('Thanh toán thành công!', { variant: 'success' });
+            
+            // Tự động cập nhật trạng thái nếu PayOS trả về PAID
+            if (searchParams.get('status') === 'PAID') {
+              await axiosInstance.post(`/rentals/updatePayment/${fullOrderCode}`, {
+                status: 'PAID'
+              });
+            }
+          } else {
+            enqueueSnackbar('Đơn hàng đang được xử lý', { variant: 'info' });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        enqueueSnackbar('Có lỗi xảy ra khi kiểm tra trạng thái thanh toán', { variant: 'error' });
+      }
+    };
+
+    checkPaymentStatus();
+  }, [orderCode, searchParams, enqueueSnackbar]);
 
   return (
     <Box sx={{ 

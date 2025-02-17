@@ -13,29 +13,41 @@ const OrderStatus = ({ status }: OrderStatusProps) => {
           color: 'warning' as const,
           description: 'Đơn hàng đang chờ xác nhận'
         };
+      case 'pending_payment':
+        return {
+          label: 'Chờ thanh toán',
+          color: 'info' as const,
+          description: 'Đơn hàng đang chờ thanh toán'
+        };
       case 'approved':
         return {
           label: 'Đã xác nhận',
-          color: 'info' as const,
-          description: 'Đơn hàng đã được xác nhận, đang cho thuê'
+          color: 'success' as const,
+          description: 'Đơn hàng đã được xác nhận'
         };
       case 'completed':
         return {
           label: 'Hoàn thành',
           color: 'success' as const,
-          description: 'Khách hàng đã trả đồ, đơn hàng hoàn tất'
+          description: 'Đơn hàng đã hoàn thành'
         };
       case 'rejected':
         return {
-          label: 'Đã từ chối',
+          label: 'Từ chối',
           color: 'error' as const,
-          description: 'Đơn hàng bị từ chối'
+          description: 'Đơn hàng đã bị từ chối'
+        };
+      case 'cancelled':
+        return {
+          label: 'Đã hủy',
+          color: 'error' as const,
+          description: 'Đơn hàng đã bị hủy'
         };
       default:
         return {
-          label: 'Không xác định',
+          label: 'Chờ xác nhận',
           color: 'default' as const,
-          description: ''
+          description: 'Đang chờ xác nhận'
         };
     }
   };
@@ -49,7 +61,10 @@ const OrderStatus = ({ status }: OrderStatusProps) => {
       size="small"
       sx={{ 
         fontWeight: 'medium',
-        minWidth: 100
+        minWidth: 100,
+        '& .MuiChip-label': {
+          px: 2
+        }
       }} 
     />
   );

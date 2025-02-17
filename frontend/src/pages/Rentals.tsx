@@ -48,7 +48,7 @@ interface Rental {
   totalAmount: number;
   rentDate: string;
   returnDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'pending_payment';
+  status: 'pending' | 'pending_payment' | 'approved' | 'completed' | 'rejected' | 'cancelled';
   identityCard: string;
   clothes: {
     id: string;
@@ -59,9 +59,11 @@ interface Rental {
 
 const statusOptions = [
   { value: 'pending', label: 'Đang duyệt', color: 'warning' },
+  { value: 'pending_payment', label: 'Chờ thanh toán', color: 'info' },
   { value: 'approved', label: 'Xác nhận', color: 'info' },
   { value: 'completed', label: 'Hoàn thành', color: 'success' },
-  { value: 'rejected', label: 'Từ chối', color: 'error' }
+  { value: 'rejected', label: 'Từ chối', color: 'error' },
+  { value: 'cancelled', label: 'Đã hủy', color: 'error' }
 ];
 
 const Rentals = () => {
@@ -168,6 +170,25 @@ const Rentals = () => {
 
     return matchesSearch && matchesStatus;
   });
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Đang duyệt';
+      case 'pending_payment':
+        return 'Chờ thanh toán';
+      case 'approved':
+        return 'Đã xác nhận';
+      case 'completed':
+        return 'Hoàn thành';
+      case 'rejected':
+        return 'Từ chối';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return 'Chờ xác nhận'; // Thay vì "Không xác định"
+    }
+  };
 
   if (loading) {
     return (

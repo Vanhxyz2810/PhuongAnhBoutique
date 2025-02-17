@@ -6,8 +6,9 @@ export enum RentalStatus {
   PENDING = 'pending',
   PENDING_PAYMENT = 'pending_payment',
   APPROVED = 'approved',
-  CANCELLED = 'cancelled',
-  REJECTED = 'rejected'
+  COMPLETED = 'completed',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled'
 }
 
 export type PaymentMethod = 'cash' | 'transfer';

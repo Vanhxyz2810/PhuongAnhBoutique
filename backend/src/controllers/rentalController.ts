@@ -272,8 +272,7 @@ export default {
 
       const rentals = await rentalRepository.find({
         where: {
-          userId: req.user.id,
-          status: Not(RentalStatus.PENDING_PAYMENT)
+          userId: req.user.id
         },
         relations: ['clothes'],
         order: { createdAt: 'DESC' }
@@ -287,40 +286,71 @@ export default {
   },
 
   // Webhook để nhận kết quả thanh toán
-  handlePaymentWebhook: (async (req: Request, res: Response) => {
+  handlePaymentWebhook: async (req: Request, res: Response) => {
     try {
-      const isValidSignature = payos.verifyPaymentWebhookData(req.body);
-      if (!isValidSignature) {
-        return res.status(400).json({ message: 'Invalid signature' });
-      }
+      console.log('\n===========================================');
+      console.log('🔔 PAYOS WEBHOOK RECEIVED');
+      console.log('Time:', new Date().toISOString());
+      console.log('Headers:', req.headers);
+      console.log('Body:', JSON.stringify(req.body, null, 2));
+      console.log('===========================================\n');
 
-      const { orderCode, status } = req.body;
+      const { orderCode, status, description } = req.body;
+      console.log('📦 Order Details:');
+      console.log('   - Order Code:', orderCode);
+      console.log('   - Status:', status);
+      console.log('   - Description:', description);
       
-      if (status === 'PAID') {
-        await rentalRepository.update(
-          { orderCode },
-          { status: RentalStatus.APPROVED }
-        );
-      } else if (status === 'CANCELLED') {
-        const rental = await rentalRepository.findOne({ where: { orderCode } });
-        if (rental) {
-          await rentalRepository.update(rental.id, { status: RentalStatus.REJECTED });
-          await clothesRepository.update(rental.clothesId, { status: 'available' });
-        }
+      // Tìm đơn hàng
+      const orderCodeWithoutPrefix = orderCode.replace('PA', '');
+      const rental = await rentalRepository.findOne({
+        where: { orderCode: `PA${orderCodeWithoutPrefix}` },
+        relations: ['clothes']
+      });
+
+      if (!rental) {
+        console.log('❌ ERROR: Rental not found for orderCode:', orderCode);
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
       }
 
-      res.json({ message: 'Webhook processed successfully' });
-    } catch (error) {
-      console.error('Payment webhook error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  }) as RequestHandler,
+      console.log('✅ Found rental:');
+      console.log('   - Rental ID:', rental.id);
+      console.log('   - Current Status:', rental.status);
+      console.log('   - Customer:', rental.customerName);
 
-  checkPaymentStatus: (async (req: Request, res: Response) => {
+      if (status === 'PAID' || status === 'COMPLETED') {
+        console.log('💰 Payment successful, updating status...');
+        
+        await rentalRepository.update(rental.id, {
+          status: RentalStatus.APPROVED,
+          approvedAt: new Date()
+        });
+
+        await clothesRepository.update(rental.clothesId, {
+          status: 'rented'
+        });
+
+        console.log('✅ Successfully updated:');
+        console.log('   - Rental status: APPROVED');
+        console.log('   - Clothes status: rented');
+      }
+
+      console.log('===========================================\n');
+      return res.json({ message: 'Webhook processed successfully' });
+    } catch (error) {
+      console.error('❌ ERROR processing webhook:', error);
+      return res.status(500).json({ message: 'Lỗi server' });
+    }
+  },
+
+  checkPaymentStatus: async (req: Request, res: Response) => {
     try {
       const { orderCode } = req.params;
+      // Tìm đơn hàng với cả 2 trường hợp có và không có prefix PA
+      const searchOrderCode = orderCode.startsWith('PA') ? orderCode : `PA${orderCode}`;
+      
       const rental = await rentalRepository.findOne({ 
-        where: { orderCode }
+        where: { orderCode: searchOrderCode }
       });
 
       if (!rental) {
@@ -349,9 +379,9 @@ export default {
       res.json({ status: rental.status });
     } catch (error) {
       console.error('Error checking payment status:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      return res.status(500).json({ message: 'Internal server error' });
     }
-  }) as RequestHandler,
+  },
 
   getById: (async (req: Request, res: Response) => {
     try {
@@ -375,6 +405,7 @@ export default {
     try {
       const { orderCode } = req.params;
       const { status } = req.body;
+      console.log('Updating payment status:', { orderCode, status });
 
       const rental = await rentalRepository.findOne({
         where: { orderCode },
@@ -386,15 +417,17 @@ export default {
       }
 
       // Cập nhật trạng thái đơn hàng
-      rental.status = RentalStatus.APPROVED;
+      rental.status = status === 'PAID' ? RentalStatus.APPROVED : RentalStatus.CANCELLED;
       await rentalRepository.save(rental);
 
-      // Cập nhật trạng thái sản phẩm
-      if (rental.clothes) {
-        rental.clothes.status = 'rented';
-        await clothesRepository.save(rental.clothes);
+      // Nếu thanh toán thành công thì cập nhật trạng thái quần áo
+      if (status === 'PAID' && rental.clothes) {
+        await clothesRepository.update(rental.clothesId, {
+          status: 'rented'
+        });
       }
 
+      console.log('Payment status updated:', { orderCode, newStatus: rental.status });
       res.json({ message: 'Cập nhật trạng thái thành công' });
     } catch (error) {
       console.error('Error updating payment:', error);

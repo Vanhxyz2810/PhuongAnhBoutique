@@ -131,18 +131,21 @@ const ProductDetail = () => {
   const [openRentalForm, setOpenRentalForm] = useState(false);
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [isLocalhost, setIsLocalhost] = useState(window.location.hostname === 'localhost');
   const [formData, setFormData] = useState<RentalFormData>({
-    customerName: '',
-    phone: '',
+    customerName: isLocalhost ? 'Khách hàng test' : '',
+    phone: isLocalhost ? '0987654321' : '',
     identityCard: null,
     rentDate: null,
-    returnDate: null,
+    returnDate: null
   });
   const [paymentInfo, setPaymentInfo] = useState<{
     orderCode?: string;
     qrCodeUrl?: string;
   }>({});
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('transfer');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>(
+    isLocalhost ? 'transfer' : 'cash'
+  );
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
   const [bookedDates, setBookedDates] = useState<{start: Date, end: Date}[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -337,11 +340,33 @@ const ProductDetail = () => {
       <Typography 
         variant="subtitle1" 
         color="info.main"
-        sx={{ fontStyle: 'italic', mt: 2 }}
+        sx={{ fontStyle: 'italic', mt: 2, textAlign: 'center' }}
       >
-        Bộ này đã có lịch thuê, vui lòng chọn ngày phù hợp!
+        Bộ này đã có lịch thuê mất rùi 😞, bạn thông cảm chọn bộ khác hoặc ngày khác nhé!
       </Typography>
     );
+  };
+
+  // Thêm hàm fillTestData
+  const fillTestData = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const dayAfterTomorrow = new Date(tomorrow);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+    setFormData({
+      customerName: 'Khách hàng test',
+      phone: '0987654321',
+      identityCard: null,
+      rentDate: tomorrow,
+      returnDate: dayAfterTomorrow
+    });
+
+    // Set thời gian lấy hàng
+    const pickupDateTime = new Date(tomorrow);
+    pickupDateTime.setHours(9, 0, 0); // Set thời gian là 9:00
+    setPickupTime(pickupDateTime);
   };
 
   if (loading) return (
@@ -576,8 +601,26 @@ const ProductDetail = () => {
               <Typography variant="h6" gutterBottom sx={{textAlign: 'center', color: theme.colors.primary }}>
                 Lịch cho thuê
               </Typography>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+            <DateCalendar
+              readOnly
+              disablePast
+              shouldDisableDate={(date: Date) => isDateBooked(date)}
+            />
+          </LocalizationProvider>
               {getBookingMessage()}
             </Box>
+
+            {/* Thêm nút Fill Test Data ở đây, trước nút Thuê ngay */}
+            {isLocalhost && (
+              <Button
+                variant="outlined"
+                onClick={fillTestData}
+                sx={{ mb: 2, mr: 2 }}
+              >
+                Fill Test Data
+              </Button>
+            )}
 
             {/* Nút Thuê ngay */}
             {product.status === 'available' ? (
@@ -627,9 +670,9 @@ const ProductDetail = () => {
             </Box>
           </Grid>
         </Grid>
-        <Box mt={4}>
+        {/* <Box mt={4}>
           <Typography variant="h6">
-            Lịch Cho Thuê
+            Lịch Cho Thuêi
           </Typography>
           {getBookingMessage()}
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
@@ -639,7 +682,7 @@ const ProductDetail = () => {
               shouldDisableDate={(date: Date) => isDateBooked(date)}
             />
           </LocalizationProvider>
-        </Box>
+        </Box> */}
         {/* Phần chính sách và liên hệ */}
         <Grid container spacing={4}>
           {/* Chính sách đổi trả */}

@@ -17,6 +17,7 @@ router.put('/cancel/:orderCode', rentalController.cancelRental);
 router.get('/booked-dates/:clothesId', rentalController.getRentalDates);
 router.get('/by-order-code/:orderCode', rentalController.getRentalByOrderCode);
 router.get('/check-payment/:orderCode', rentalController.checkPaymentStatus);
+router.post('/webhook', rentalController.handlePaymentWebhook);
 
 // Routes cần auth
 router.use(auth as RequestHandler);
@@ -27,7 +28,6 @@ router.get('/my-rentals', rentalController.getMyRentals as RequestHandler);
 
 // Routes cho admin
 router.get('/', checkRole(['admin']) as RequestHandler, rentalController.getAll as RequestHandler);
-router.post('/webhook', rentalController.handlePaymentWebhook);
 router.post('/updatePayment/:orderCode', rentalController.updatePayment);
 router.put('/:id/status', checkRole(['admin']) as RequestHandler, rentalController.updateStatus as RequestHandler);
 router.delete('/:id', checkRole(['admin']) as RequestHandler, rentalController.deleteRental as RequestHandler);

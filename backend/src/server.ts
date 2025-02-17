@@ -86,7 +86,11 @@ const seedAdmin = async () => {
 
 // Thêm middleware để log requests
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
+  console.log('\n===========================================');
+  console.log(`📨 ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('===========================================\n');
   next();
 });
 

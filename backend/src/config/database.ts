@@ -35,8 +35,8 @@ export const connectDB = async () => {
     await AppDataSource.initialize();
     
     // Test query để kiểm tra kết nối
-    const testQuery = await AppDataSource.query('SELECT NOW()');
-    console.log('Database connection test:', testQuery);
+    // const testQuery = await AppDataSource.query('SELECT NOW()');
+    // console.log('Database connection test:', testQuery);
     
     console.log("✅ Database connected successfully");
     
