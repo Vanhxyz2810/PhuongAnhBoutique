@@ -21,7 +21,8 @@ import RentalSuccess from './pages/RentalSuccess';
 import { SnackbarProvider } from 'notistack';
 import PaymentCancel from './pages/PaymentCancel';
 import Feedbacks from './pages/Feedbacks';
-import MessengerChat from './components/MessengerChat';
+import MessengerButton from './components/MessengerButton';
+import ZaloButton from './components/ZaloButton';
 
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
@@ -102,7 +103,8 @@ function App() {
                 <Route path="/cancel" element={<PaymentCancel />} />
               </Routes>
             </Layout>
-            <MessengerChat />
+            <MessengerButton />
+            <ZaloButton />
           </Router>
         </ThemeProvider>
       </LocalizationProvider>
