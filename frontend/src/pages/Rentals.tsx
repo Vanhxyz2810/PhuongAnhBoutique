@@ -39,6 +39,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import { enqueueSnackbar } from 'notistack';
+import CCCDInfoDialog from '../components/CCCDInfoDialog';
+import { CCCDInfo } from '../types/cccd';
 
 interface Rental {
   id: number;
@@ -55,6 +57,7 @@ interface Rental {
     name: string;
     images: string[];
   };
+  cccdInfo?: CCCDInfo | string;
 }
 
 const statusOptions = [
@@ -76,13 +79,46 @@ const Rentals = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [loadingStatus, setLoadingStatus] = useState<number | null>(null);
+  const [cccdDialogOpen, setCccdDialogOpen] = useState(false);
+  const [selectedCCCD, setSelectedCCCD] = useState<{
+    image: string;
+    info?: CCCDInfo;
+  }>();
 
   const fetchRentals = async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/rentals');
-      console.log('Rentals data:', response.data);
-      setRentals(response.data);
+      console.log('Raw API Response:', response.data);
+      
+      // Kiểm tra cấu trúc dữ liệu của một rental
+      if (response.data.length > 0) {
+        console.log('Sample rental:', response.data[0]);
+        console.log('Sample rental cccdInfo:', response.data[0].cccdInfo);
+      }
+
+      const transformedRentals = response.data.map((rental: Rental) => {
+        console.log('Processing rental:', rental.orderCode);
+        console.log('Original cccdInfo:', rental.cccdInfo);
+        
+        let parsedInfo;
+        try {
+          parsedInfo = rental.cccdInfo ? (
+            typeof rental.cccdInfo === 'string' ? JSON.parse(rental.cccdInfo) : rental.cccdInfo
+          ) : undefined;
+          console.log('Parsed cccdInfo:', parsedInfo);
+        } catch (error) {
+          console.error('Error parsing cccdInfo for rental:', rental.orderCode, error);
+        }
+
+        return {
+          ...rental,
+          cccdInfo: parsedInfo
+        };
+      });
+
+      console.log('Final transformed rentals:', transformedRentals);
+      setRentals(transformedRentals);
     } catch (error) {
       console.error('Error fetching rentals:', error);
       setError('Không thể tải danh sách đơn hàng');
@@ -156,6 +192,18 @@ const Rentals = () => {
       }
     }
     setOpenDeleteDialog(false);
+  };
+
+  const handleOpenCCCD = (rental: Rental) => {
+    console.log('Opening CCCD for rental:', rental);
+    console.log('CCCD Info:', rental.cccdInfo);
+
+    // Không cần parse nữa vì dữ liệu đã là object
+    setSelectedCCCD({
+      image: rental.identityCard,
+      info: rental.cccdInfo as CCCDInfo // Type assertion vì chúng ta biết đây là object
+    });
+    setCccdDialogOpen(true);
   };
 
   const filteredRentals = rentals.filter((rental) => {
@@ -371,7 +419,7 @@ const Rentals = () => {
                 <TableCell sx={{textAlign: 'center'}}>Ngày trả</TableCell>
 
                 <TableCell sx={{textAlign: 'center'}}>Tổng tiền</TableCell>
-                <TableCell sx={{textAlign: 'center'}}>CCCD</TableCell>
+                <TableCell sx={{textAlign: 'center'}}>Info CCCD</TableCell>
                 <TableCell sx={{textAlign: 'center'}}>Trạng thái</TableCell>
                 <TableCell sx={{textAlign: 'center'}}>Thao tác</TableCell>
               </TableRow>
@@ -396,10 +444,10 @@ const Rentals = () => {
                   </TableCell>
                   <TableCell sx={{ textAlign: 'center', width: '100px' }}>
                     {rental.identityCard ? (
-                      <Tooltip title="Xem CCCD">
+                      <Tooltip title="Xem Info CCCD">
                         <IconButton 
                           size="small"
-                          onClick={() => handleOpenImage(rental.identityCard)}
+                          onClick={() => handleOpenCCCD(rental)}
                           sx={{ 
                             color: theme.palette.primary.main,
                             '&:hover': {
@@ -523,6 +571,13 @@ const Rentals = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <CCCDInfoDialog
+        open={cccdDialogOpen}
+        onClose={() => setCccdDialogOpen(false)}
+        cccdImage={selectedCCCD?.image || ''}
+        cccdInfo={selectedCCCD?.info}
+      />
     </Container>
   );
 };

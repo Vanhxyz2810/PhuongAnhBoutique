@@ -9,6 +9,7 @@ import { AuthRequest } from '../types';
 import payos from '../config/payos';
 import { Not, In } from 'typeorm';
 import { uploadToCloudinary } from '../middleware/uploadToCloud';
+import { extractCCCDInfo } from '../services/cccdService';
 
 const rentalRepository = AppDataSource.getRepository(Rental);
 const clothesRepository = AppDataSource.getRepository(Clothes);
@@ -61,14 +62,23 @@ export default {
         return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
       }
 
-      // Upload CCCD to Cloudinary if provided
+      // Upload CCCD và trích xuất thông tin
       let identityCardUrl = '';
+      let cccdInfo = null;
+      
       if (file) {
         try {
+          // Upload lên Cloudinary
           identityCardUrl = await uploadToCloudinary(file, 'identity_cards');
+          
+          // Trích xuất thông tin CCCD
+          cccdInfo = await extractCCCDInfo(file);
+          
+          if (cccdInfo) {
+            console.log('Extracted CCCD info:', cccdInfo);
+          }
         } catch (error) {
-          console.error('Cloudinary upload error:', error);
-          return res.status(500).json({ message: 'Lỗi khi tải lên CCCD' });
+          console.error('Error processing CCCD:', error);
         }
       }
 
@@ -107,12 +117,13 @@ export default {
         orderCode,
         userId: user.id,
         clothesId: clothes.id,
-        customerName: rentalData.customerName,
+        customerName: cccdInfo?.hoTen || rentalData.customerName,
         phone: rentalData.phone,
         rentDate: new Date(rentalData.rentDate),
         returnDate: new Date(rentalData.returnDate),
         totalAmount: amount,
         identityCard: identityCardUrl,
+        cccdInfo: cccdInfo || undefined,
         status: rentalData.paymentMethod === 'cash' ? RentalStatus.PENDING : RentalStatus.PENDING_PAYMENT,
         paymentMethod: rentalData.paymentMethod,
         pickupTime: rentalData.pickupTime,
@@ -155,26 +166,13 @@ export default {
   getAll: async (req: Request, res: Response) => {
     try {
       const rentals = await rentalRepository.find({
-        relations: ['clothes'],
-        select: {
-          id: true,
-          orderCode: true,
-          customerName: true,
-          phone: true,
-          rentDate: true,
-          returnDate: true,
-          totalAmount: true,
-          status: true,
-          identityCard: true,
-          clothes: {
-            id: true,
-            name: true,
-            image: true
-          }
+        relations: ['clothes', 'user'],
+        order: {
+          createdAt: 'DESC'
         }
       });
 
-      console.log('Rentals with identity cards:', rentals);
+      console.log('Rentals from DB:', rentals);
       res.json(rentals);
     } catch (error) {
       console.error('Error getting rentals:', error);

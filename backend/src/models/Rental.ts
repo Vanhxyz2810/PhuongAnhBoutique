@@ -131,4 +131,14 @@ export class Rental {
     nullable: true 
   })
   feedbackAt: Date;
+
+  @Column('simple-json', { nullable: true })
+  cccdInfo: {
+    cccd: string;
+    hoTen: string;
+    ngaySinh: string;
+    gioiTinh: string;
+    queQuan: string;
+    noiThuongTru: string;
+  } | null;
 } 

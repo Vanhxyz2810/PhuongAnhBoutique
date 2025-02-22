@@ -3,6 +3,7 @@ import rentalController from '../controllers/rentalController';
 import { uploadIdentity } from '../middleware/uploadIdentity';
 import { auth } from '../middleware/auth';
 import { checkRole } from '../middleware/checkRole';
+import { uploadCCCD } from '../middleware/uploadClothes';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.post('/webhook', rentalController.handlePaymentWebhook);
 router.use(auth as RequestHandler);
 
 // Routes cho khách hàng
-router.post('/', uploadIdentity.single('identityCard'), rentalController.create);
+router.post('/', uploadCCCD.single('identityCard'), rentalController.create);
 router.get('/my-rentals', rentalController.getMyRentals as RequestHandler);
 
 // Routes cho admin

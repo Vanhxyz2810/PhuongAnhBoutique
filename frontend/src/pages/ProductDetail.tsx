@@ -371,7 +371,7 @@ const ProductDetail = () => {
 
   if (loading) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-      <Typography>Đang tải...</Typography>
+      <Typography>Đang xử lý,vui lòng đợi...</Typography>
     </Box>
   );
 
@@ -397,28 +397,29 @@ const ProductDetail = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate form
-    if (!formData.customerName.trim()) {
-      enqueueSnackbar('Vui lòng nhập họ tên', {variant:'warning'})
-      return;
-    }
-    if (!formData.phone.trim()) {
-      enqueueSnackbar('Vui lòng nhập số điện thoại', {variant:'warning'})
-      return;
-    }
-    if (!formData.identityCard) {
-      enqueueSnackbar('Vui lòng tải lên CCCD/CMND', {variant:'warning'})
-      return;
-    }
-    if (!formData.rentDate || !formData.returnDate) {
-      enqueueSnackbar('Vui lòng chọn ngày thuê và ngày trả', {variant:'warning'})
-      return;
-    }
-
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     try {
+      setLoading(true);
+      
+      // Validate form
+      if (!formData.customerName.trim()) {
+        enqueueSnackbar('Vui lòng nhập họ tên', {variant:'warning'})
+        return;
+      }
+      if (!formData.phone.trim()) {
+        enqueueSnackbar('Vui lòng nhập số điện thoại', {variant:'warning'})
+        return;
+      }
+      if (!formData.identityCard) {
+        enqueueSnackbar('Vui lòng tải lên CCCD/CMND', {variant:'warning'})
+        return;
+      }
+      if (!formData.rentDate || !formData.returnDate) {
+        enqueueSnackbar('Vui lòng chọn ngày thuê và ngày trả', {variant:'warning'})
+        return;
+      }
+
       setSubmitting(true);
       console.log('=== SUBMITTING RENTAL ===');
       
@@ -447,7 +448,8 @@ const ProductDetail = () => {
       const response = await axiosInstance.post('/rentals', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'  // Đảm bảo header đúng
-        }
+        },
+        timeout: 30000 // Có thể override timeout cho riêng request này
       });
       
       console.log('=== RENTAL RESPONSE ===', response.data);
@@ -460,6 +462,11 @@ const ProductDetail = () => {
       } else if (paymentMethod === 'cash') {
         navigate(`/rental-success?orderCode=${response.data.orderCode}&amount=${calculateTotal()}&status=pending`);
       }
+
+      if (response.data) {
+        enqueueSnackbar('Đặt thuê thành công!', { variant: 'success' });
+        navigate('/my-orders');
+      }
     } catch (error) {
       console.error('=== RENTAL ERROR ===');
       console.error('Error:', error);
@@ -470,6 +477,7 @@ const ProductDetail = () => {
       enqueueSnackbar(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn thuê', {variant:'error'})
     } finally {
       setSubmitting(false);
+      setLoading(false);
     }
   };
 
